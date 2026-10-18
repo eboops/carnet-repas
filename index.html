@@ -210,7 +210,7 @@ td.n,th.n{text-align:right}
     <h2>Restaurer une sauvegarde</h2>
     <div class="card">
       <label for="impText">Collez ici le texte d'une sauvegarde<textarea id="impText" rows="4"></textarea></label>
-      <label for="impFile">ou choisissez un fichier<input id="impFile" type="file" accept=".json,.txt,application/json,text/plain"></label>
+      <label for="impFile">ou choisissez un fichier<input id="impFile" type="file" accept=".json,.txt,.csv,application/json,text/plain,text/csv"></label>
       <div class="banner" id="impSummary" hidden style="margin-top:0"></div>
       <p class="msg" id="impMsg"></p>
       <div class="row"><button class="btn danger" type="button" id="impBtn">Remplacer mes données par cette sauvegarde</button></div>
@@ -625,9 +625,10 @@ function backupFile(){
   return {o,name,blob:new Blob([JSON.stringify(o,null,1)],{type:'application/json'})};
 }
 $('shareBackup').onclick=async()=>{
-  /* Chrome Android ne partage que certains types de fichiers : le .json est refusé, le .txt est accepté */
-  const {o,name,blob}=backupFile(), txt=name.replace(/\.json$/,'.txt');
-  const file=new File([blob],txt,{type:'text/plain'});
+  /* Chrome Android ne partage que certains types de fichiers (le .json est refusé) ;
+     un .txt est collé comme du texte par Telegram et Gmail, un .csv reste une pièce jointe */
+  const {o,name,blob}=backupFile(), txt=name.replace(/\.json$/,'.csv');
+  const file=new File([blob],txt,{type:'text/csv'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){
     try{await navigator.share({files:[file],title:'Sauvegarde du carnet de repas'});
       $('expMsg').innerHTML=`<span class="ok">Sauvegarde ${esc(txt)} partagée.</span>`}
