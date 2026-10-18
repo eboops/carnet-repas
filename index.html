@@ -625,11 +625,13 @@ function backupFile(){
   return {o,name,blob:new Blob([JSON.stringify(o,null,1)],{type:'application/json'})};
 }
 $('shareBackup').onclick=async()=>{
-  const {o,name,blob}=backupFile(), file=new File([blob],name,{type:'application/json'});
+  /* Chrome Android ne partage que certains types de fichiers : le .json est refusé, le .txt est accepté */
+  const {o,name,blob}=backupFile(), txt=name.replace(/\.json$/,'.txt');
+  const file=new File([blob],txt,{type:'text/plain'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){
-    try{await navigator.share({files:[file],title:'Sauvegarde du carnet de repas',text:`Sauvegarde du ${stamp(o.savedAt)} (${o.device})`});
-      $('expMsg').innerHTML=`<span class="ok">Sauvegarde ${esc(name)} partagée.</span>`}
-    catch(e){if(e.name!=='AbortError')$('expMsg').textContent='Le partage a échoué. Utilisez « Enregistrer dans un fichier ».'}
+    try{await navigator.share({files:[file],title:'Sauvegarde du carnet de repas'});
+      $('expMsg').innerHTML=`<span class="ok">Sauvegarde ${esc(txt)} partagée.</span>`}
+    catch(e){if(e.name!=='AbortError')$('expMsg').textContent=`Le partage a échoué (${e.name}). Utilisez « Enregistrer dans un fichier ».`}
   }else{$('fileBackup').click();$('expMsg').innerHTML+=' <span class="hint">(Le partage direct n\'est pas disponible sur cet appareil : le fichier a été enregistré.)</span>'}
 };
 $('fileBackup').onclick=()=>{
