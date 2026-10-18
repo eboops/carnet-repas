@@ -198,10 +198,11 @@ td.n,th.n{text-align:right}
       <div class="row">
         <button class="btn" type="button" id="copyAnalyse">Copier pour une analyse</button>
         <button class="btn ghost" type="button" id="copyBackup">Copier la sauvegarde complète</button>
+        <button class="btn" type="button" id="shareBackup">Partager la sauvegarde</button>
         <button class="btn ghost" type="button" id="fileBackup">Enregistrer dans un fichier</button>
       </div>
       <label for="deviceName">Nom de cet appareil <span class="hint">repris dans chaque sauvegarde</span><input id="deviceName" maxlength="30" placeholder="ex. Pixel de Christian"></label>
-      <p class="hint" style="margin:0">L'analyse se colle dans une conversation avec Claude. La sauvegarde se garde dans une note ou un e-mail, et se restaure ci-dessous.</p>
+      <p class="hint" style="margin:0">L'analyse se colle dans une conversation avec Claude. « Partager la sauvegarde » envoie un fichier par Telegram, Gmail ou Drive ; sur l'autre appareil, choisissez ce fichier dans « Restaurer une sauvegarde ».</p>
       <p class="msg" id="expMsg"></p>
       <textarea id="expText" rows="8" readonly hidden aria-label="Texte exporté"></textarea>
     </div>
@@ -618,10 +619,23 @@ const stamp=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('fr-
 function backupObj(){return {app:'carnet-repas',version:2,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats}}
 $('copyBackup').onclick=()=>{const o=backupObj();showAndCopy(JSON.stringify(o),
   `Sauvegarde du ${stamp(o.savedAt)} (« ${esc(o.device)} ») copiée : ${S.foods.length} aliments, ${S.meals.length} repas. Collez-la dans une note ou un e-mail.`)};
+/* fichier de sauvegarde : partagé (Telegram, Gmail, Drive…) ou enregistré */
+function backupFile(){
+  const o=backupObj(),name=`carnet-repas-${TODAY}-${o.device.replace(/[^\w\-]+/g,'_')}.json`;
+  return {o,name,blob:new Blob([JSON.stringify(o,null,1)],{type:'application/json'})};
+}
+$('shareBackup').onclick=async()=>{
+  const {o,name,blob}=backupFile(), file=new File([blob],name,{type:'application/json'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:'Sauvegarde du carnet de repas',text:`Sauvegarde du ${stamp(o.savedAt)} (${o.device})`});
+      $('expMsg').innerHTML=`<span class="ok">Sauvegarde ${esc(name)} partagée.</span>`}
+    catch(e){if(e.name!=='AbortError')$('expMsg').textContent='Le partage a échoué. Utilisez « Enregistrer dans un fichier ».'}
+  }else{$('fileBackup').click();$('expMsg').innerHTML+=' <span class="hint">(Le partage direct n\'est pas disponible sur cet appareil : le fichier a été enregistré.)</span>'}
+};
 $('fileBackup').onclick=()=>{
-  const o=backupObj(),blob=new Blob([JSON.stringify(o,null,1)],{type:'application/json'});
+  const {o,name,blob}=backupFile();
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
-  a.download=`carnet-repas-${TODAY}-${o.device.replace(/[^\w\-]+/g,'_')}.json`;
+  a.download=name;
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000);
   $('expMsg').innerHTML=`<span class="ok">Fichier ${esc(a.download)} enregistré dans vos téléchargements.</span>`;
 };
@@ -630,7 +644,8 @@ $('impFile').addEventListener('change',e=>{
   const r=new FileReader();r.onload=()=>{$('impText').value=r.result;$('impMsg').textContent='';showImpSummary()};r.readAsText(f);
 });
 function readBackup(){
-  const t=$('impText').value, i=t.indexOf('{'), j=t.lastIndexOf('}');
+  /* les retours à la ligne ajoutés par un e-mail ou une note coupent parfois un nom : on les remplace par des espaces */
+  const t=$('impText').value.replace(/\s*[\r\n]+\s*/g,' '), i=t.indexOf('{'), j=t.lastIndexOf('}');
   if(i<0||j<i)return null;
   try{const o=JSON.parse(t.slice(i,j+1));return Array.isArray(o.foods)&&Array.isArray(o.meals)?o:null}catch(e){return null}
 }
