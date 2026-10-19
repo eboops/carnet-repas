@@ -83,6 +83,10 @@ th{font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.0
 td.n,th.n{text-align:right}
 .chart{width:100%;height:auto;display:block}
 .empty{color:var(--muted);padding:12px 0}
+[hidden]{display:none!important}
+.stack{display:grid;gap:12px}
+.recbox{border:1px dashed var(--line);border-radius:10px;padding:12px}
+@media (max-width:560px){#dayMeals .item,#modelList .item{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:no-preference){.meter span{transition:width .3s}}
 </style>
 </head>
@@ -115,10 +119,29 @@ td.n,th.n{text-align:right}
         <label for="foodCat">Catégorie<select id="foodCat"></select></label>
         <label for="foodCatNew" id="foodCatNewWrap" hidden>Nom de la nouvelle catégorie<input id="foodCatNew" maxlength="30" placeholder="ex. Soupes"></label>
       </div>
+      <div class="seg" role="group" aria-label="Type d'aliment" style="justify-self:start">
+        <button type="button" id="kindSimple" aria-pressed="true">Aliment simple</button>
+        <button type="button" id="kindRecipe" aria-pressed="false">Préparation (recette)</button>
+      </div>
+      <div class="stack recbox" id="recipeBox" hidden>
+        <p class="hint" style="margin:0">Composez la recette avec vos aliments. Les valeurs sont calculées et figées à l'enregistrement : la préparation devient un aliment comme les autres.</p>
+        <div class="grid2"><label for="recCat">Catégorie<select id="recCat"></select></label><label for="recSearch">Rechercher un ingrédient<input id="recSearch" type="search" placeholder="Premières lettres…"></label></div>
+        <div class="grid2">
+          <label for="recFood">Ingrédient<select id="recFood"></select></label>
+          <label for="recQty"><span id="recQtyLabel">Quantité <span class="hint">en g</span></span><input id="recQty" type="text" inputmode="decimal"></label>
+        </div>
+        <div class="row"><button class="btn small" type="button" id="recAdd">+ Ajouter l'ingrédient</button></div>
+        <div class="list" id="recList"></div>
+        <div class="grid2">
+          <label for="recPoids">Poids final <span class="hint">en g, si la cuisson le change</span><input id="recPoids" type="text" inputmode="decimal"></label>
+          <label for="recN">Nombre de portions <span class="hint">facultatif</span><input id="recN" type="text" inputmode="decimal" placeholder="ex. 12"></label>
+        </div>
+        <div class="meta" id="recTotals"></div>
+      </div>
       <div class="grid2">
-        <label for="foodKcal">Calories <span class="hint">kcal pour 100 g</span><input id="foodKcal" type="text" required inputmode="decimal"></label>
-        <label for="foodProt">Protéines <span class="hint">g pour 100 g</span><input id="foodProt" type="text" required inputmode="decimal"></label>
-        <label for="foodPortion">Portion habituelle <span class="hint">en g, facultatif</span><input id="foodPortion" type="text" inputmode="decimal"></label>
+        <label for="foodKcal" id="kcalWrap">Calories <span class="hint">kcal pour 100 g</span><input id="foodKcal" type="text" required inputmode="decimal"></label>
+        <label for="foodProt" id="protWrap">Protéines <span class="hint">g pour 100 g</span><input id="foodProt" type="text" required inputmode="decimal"></label>
+        <label for="foodPortion" id="portionWrap">Portion habituelle <span class="hint">en g, facultatif</span><input id="foodPortion" type="text" inputmode="decimal"></label>
         <label for="foodPortionNom">Nom de la portion <span class="hint">facultatif</span><input id="foodPortionNom" maxlength="40" placeholder="ex. cuillère à café"></label>
       </div>
       <p class="msg" id="foodMsg"></p>
@@ -128,7 +151,7 @@ td.n,th.n{text-align:right}
       </div>
     </form>
     <h2>Mes aliments</h2>
-    <input id="foodSearch" type="search" placeholder="Rechercher…" aria-label="Rechercher un aliment">
+    <div class="grid2"><label for="foodCatFilter">Catégorie<select id="foodCatFilter"></select></label><label for="foodSearch">Rechercher<input id="foodSearch" type="search" placeholder="Premières lettres…"></label></div>
     <div class="list" id="foodList" style="margin-top:8px"></div>
   </section>
 
@@ -144,7 +167,8 @@ td.n,th.n{text-align:right}
           <option>Petit-déjeuner</option><option>Déjeuner</option><option>Collation</option><option>Dîner</option>
         </select></label>
       </div>
-      <label for="lineSearch">Rechercher un aliment<input id="lineSearch" type="search" placeholder="Tapez les premières lettres…"></label>
+      <label for="mealCopy">Reprendre un repas précédent <span class="hint">facultatif, ses aliments sont ajoutés au repas en cours</span><select id="mealCopy"></select></label>
+      <div class="grid2"><label for="lineCat">Catégorie<select id="lineCat"></select></label><label for="lineSearch">Rechercher un aliment<input id="lineSearch" type="search" placeholder="Premières lettres…"></label></div>
       <p class="hint" style="margin:0">Aliment absent de la liste ? <button type="button" class="btn ghost small" id="goNewFood">Créer un aliment</button> <span>Votre repas en cours sera conservé.</span></p>
       <div class="grid2">
         <label for="lineFood">Aliment<select id="lineFood"></select></label>
@@ -163,10 +187,17 @@ td.n,th.n{text-align:right}
       <div class="row">
         <button class="btn" type="submit" id="mealSave">Enregistrer le repas</button>
         <button class="btn ghost" type="button" id="mealCancel" hidden>Annuler</button>
+        <button class="btn ghost" type="button" id="modelFromDraft">Enregistrer comme modèle</button>
       </div>
+      <div id="modelNameRow" hidden></div>
     </form>
     <h2 id="dayMealsTitle">Repas du jour</h2>
     <div class="list" id="dayMeals"></div>
+    <details class="card" id="modelsBox" style="margin-top:20px;display:block">
+      <summary style="cursor:pointer;font-weight:700" id="modelsSum">Mes modèles de repas</summary>
+      <p class="hint" style="margin:8px 0">Les modèles ne comptent pas dans le bilan. Pour en modifier un : reprenez-le, corrigez, puis enregistrez-le comme modèle sous le même nom.</p>
+      <div class="list" id="modelList"></div>
+    </details>
   </section>
 
   <!-- BILAN -->
@@ -252,22 +283,15 @@ const BASE=[
  ['Boissons',[['Thé ou café sans sucre',1,0.1,250,'tasse'],['Jus d\'orange',45,0.7,200,'verre'],['Vin rouge',85,0.1,125,'verre'],['Bière',40,0.4,250,'demi']]]
 ];
 const baseFoods=()=>BASE.flatMap(([cat,items])=>items.map(([nom,kcal,prot,portion,portionNom])=>({id:uid(),nom,kcal,prot,portion:portion||null,portionNom:portionNom||null,cat})));
+/* premier lancement : les aliments de base, aucun repas */
 function seed(){
-  const foods=baseFoods();
-  const by=n=>foods.find(x=>x.nom===n).id;
-  const meals=[];
-  for(let i=6;i>=0;i--){
-    const d=addDays(TODAY,-i), v=i%3;
-    meals.push({id:uid(),date:d,time:'08:0'+v,type:'Petit-déjeuner',items:[{foodId:by('Pain complet'),g:60+v*10},{foodId:by('Yaourt nature'),g:125},{foodId:by('Pomme'),g:150}]});
-    meals.push({id:uid(),date:d,time:'12:30',type:'Déjeuner',items:[{foodId:by(v?'Blanc de poulet':'Lentilles vertes'),g:v?150:60},{foodId:by('Riz blanc'),g:60},{foodId:by('Courgette'),g:200},{foodId:by("Huile d'olive"),g:10}]});
-    if(i!==0) meals.push({id:uid(),date:d,time:'19:15',type:'Dîner',items:[{foodId:by('Œuf'),g:110},{foodId:by('Emmental'),g:30},{foodId:by('Pain complet'),g:30},{foodId:by('Haricots verts'),g:150}]});
-  }
-  return {foods,meals,goals:{kcal:2000,prot:70},cats:[...DEFAULT_CATS],example:true,base:1};
+  return {foods:baseFoods(),meals:[],goals:{kcal:2000,prot:70},cats:[...DEFAULT_CATS],models:[],example:false,base:1};
 }
 let S;
 try{S=JSON.parse(localStorage.getItem(KEY))}catch(e){S=null}
 if(!S||!Array.isArray(S.foods)) S=seed();
 if(!Array.isArray(S.cats)) S.cats=[...DEFAULT_CATS];
+if(!Array.isArray(S.models)) S.models=[];
 /* carnets existants : on ajoute une seule fois les aliments de base qui n'y sont pas déjà */
 if(!S.base){const have=new Set(S.foods.map(f=>norm(f.nom)));baseFoods().forEach(f=>{if(!have.has(norm(f.nom)))S.foods.push(f)});S.base=1}
 const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
@@ -305,46 +329,123 @@ function fillCatSelect(val){
   $('foodCatNewWrap').hidden=true;$('foodCatNew').value='';
 }
 $('foodCat').addEventListener('change',()=>{const n=$('foodCat').value==='__new';$('foodCatNewWrap').hidden=!n;if(n)$('foodCatNew').focus()});
+/* ---------- préparations : recette figée, ingrédients recopiés avec leurs valeurs ---------- */
+let kind='simple', rec=[];
+function setKind(k){
+  kind=k;
+  $('kindSimple').setAttribute('aria-pressed',k==='simple');$('kindRecipe').setAttribute('aria-pressed',k==='recipe');
+  $('recipeBox').hidden=k!=='recipe';
+  ['kcalWrap','protWrap','portionWrap'].forEach(w=>$(w).hidden=k==='recipe');
+  $('foodKcal').required=$('foodProt').required=k==='simple';
+  if(k==='recipe'){fillCatFilter('recCat');fillRecFood();renderRec()}
+}
+$('kindSimple').onclick=()=>setKind('simple');
+$('kindRecipe').onclick=()=>setKind('recipe');
+const recSum=()=>rec.reduce((a,l)=>{a.k+=l.kcal*l.g/100;a.p+=l.prot*l.g/100;a.g+=l.g;return a},{k:0,p:0,g:0});
+function fillRecFood(){
+  const sel=$('recFood'),q=norm($('recSearch').value.trim()),self=$('foodId').value;
+  const cv=$('recCat').value,all=byCat(S.foods.filter(f=>f.id!==self),cv).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  const list=q?all.filter(f=>norm(f.nom).includes(q)):all;
+  const opt=f=>`<option value="${f.id}">${esc(f.nom)}</option>`;
+  sel.innerHTML=q?(list.length?list.map(opt).join(''):'<option value="">Aucun aliment ne correspond</option>')
+    :cv?'<option value="">Choisir un ingrédient…</option>'+list.map(opt).join('')
+    :'<option value="">Choisir un ingrédient…</option>'+groupByCat(list).map(([c,fs])=>`<optgroup label="${esc(c)}">${fs.map(opt).join('')}</optgroup>`).join('');
+  sel.value=q&&list.length?list[0].id:'';
+  recLabel();
+}
+function recLabel(){
+  const f=food($('recFood').value);
+  $('recQtyLabel').innerHTML='Quantité <span class="hint">en g'+(f&&f.portion?` (1 ${f.portionNom?esc(f.portionNom):'portion'} = ${nf1.format(f.portion)} g)`:'')+'</span>';
+}
+$('recSearch').addEventListener('input',fillRecFood);
+$('recCat').addEventListener('change',fillRecFood);
+$('recFood').addEventListener('change',recLabel);
+$('recAdd').onclick=()=>{
+  const f=food($('recFood').value),g=num($('recQty').value);
+  if(!f){$('foodMsg').textContent='Choisissez un ingrédient.';return}
+  if(!(g>0)){$('foodMsg').textContent='Indiquez la quantité de l\'ingrédient en grammes.';$('recQty').focus();return}
+  const ex=rec.find(l=>l.foodId===f.id); if(ex)ex.g+=g; else rec.push({foodId:f.id,nom:f.nom,kcal:f.kcal,prot:f.prot,g});
+  $('recQty').value='';$('recSearch').value='';fillRecFood();
+  $('foodMsg').innerHTML=`<span class="ok">${esc(f.nom)} ajouté à la recette.</span>`;
+  renderRec();
+};
+function renderRec(){
+  $('recList').innerHTML=rec.length?rec.map((l,i)=>`<div class="item"><div><div class="name">${esc(l.nom)}</div><div class="meta">${chips({k:l.kcal*l.g/100,p:l.prot*l.g/100})}</div></div>
+    <div class="row" style="flex-wrap:nowrap">
+      <input type="text" inputmode="decimal" value="${fr(l.g)}" data-rg="${i}" aria-label="Grammes de ${esc(l.nom)}" style="width:5.5em;padding:6px 8px">
+      <span class="unit">g</span>
+      <button class="btn danger small" type="button" data-rrm="${i}">Retirer</button>
+    </div></div>`).join(''):'<p class="empty">Aucun ingrédient pour l\'instant.</p>';
+  $('recList').querySelectorAll('[data-rrm]').forEach(b=>b.onclick=()=>{rec.splice(+b.dataset.rrm,1);renderRec()});
+  $('recList').querySelectorAll('[data-rg]').forEach(inp=>inp.addEventListener('change',()=>{const g=num(inp.value);if(g>0)rec[+inp.dataset.rg].g=g;renderRec()}));
+  recTotals();
+}
+function recTotals(){
+  const t=recSum();
+  if(!rec.length){$('recTotals').innerHTML='';$('recPoids').placeholder='';return}
+  $('recPoids').placeholder=nf1.format(t.g)+' (somme des ingrédients)';
+  const poids=num($('recPoids').value)||t.g,n=num($('recN').value);
+  let h=`Total : ${chips(t)} pour ${nf1.format(poids)} g<br>Pour 100 g : ${chips({k:t.k/poids*100,p:t.p/poids*100})}`;
+  if(n>0)h+=`<br>1 portion (${nf1.format(poids/n)} g) : ${chips({k:t.k/n,p:t.p/n})}`;
+  $('recTotals').innerHTML=h;
+}
+['recPoids','recN'].forEach(id=>$(id).addEventListener('input',recTotals));
+
 function resetFoodForm(){
   $('foodForm').reset();$('foodId').value='';$('foodMsg').textContent='';
   $('foodFormTitle').textContent='Nouvel aliment';$('foodSave').textContent="Ajouter l'aliment";$('foodCancel').hidden=true;
-  fillCatSelect('');
+  rec=[];setKind('simple');fillCatSelect('');
 }
 $('foodCancel').onclick=resetFoodForm;
 $('foodForm').addEventListener('submit',e=>{
   e.preventDefault();
-  const nom=$('foodName').value.trim(), kcal=num($('foodKcal').value), prot=num($('foodProt').value);
-  const portion=num($('foodPortion').value)||null, id=$('foodId').value;
+  const nom=$('foodName').value.trim(), id=$('foodId').value;
+  let kcal=num($('foodKcal').value), prot=num($('foodProt').value), portion=num($('foodPortion').value)||null, recette=null;
+  if(kind==='recipe'){
+    if(!nom){$('foodMsg').textContent='Indiquez le nom de la préparation.';$('foodName').focus();return}
+    if(!rec.length){$('foodMsg').textContent='Ajoutez au moins un ingrédient à la recette.';return}
+    const t=recSum(),poids=num($('recPoids').value)||t.g,n=num($('recN').value)||null;
+    if(!(poids>0)){$('foodMsg').textContent='Indiquez le poids final de la préparation.';return}
+    kcal=Math.round(t.k/poids*1000)/10;prot=Math.round(t.p/poids*1000)/10;
+    portion=n?Math.round(poids/n*10)/10:null;
+    recette={items:rec.map(l=>({...l})),poids:num($('recPoids').value)||null,n};
+  }
   const portionNom=portion?($('foodPortionNom').value.trim()||null):null;
   if(!nom||isNaN(kcal)||isNaN(prot)){$('foodMsg').textContent='Indiquez le nom, les calories et les protéines.';return}
   let cat=$('foodCat').value||null;
   if(cat==='__new'){cat=$('foodCatNew').value.trim();if(!cat){$('foodMsg').textContent='Indiquez le nom de la nouvelle catégorie.';$('foodCatNew').focus();return}
     const ex=S.cats.find(c=>norm(c)===norm(cat)); if(ex)cat=ex; else S.cats.push(cat)}
   if(S.foods.some(f=>f.nom.toLowerCase()===nom.toLowerCase()&&f.id!==id)){$('foodMsg').textContent='Un aliment porte déjà ce nom.';return}
-  if(id){Object.assign(food(id),{nom,kcal,prot,portion,portionNom,cat})}else{S.foods.push({id:uid(),nom,kcal,prot,portion,portionNom,cat})}
+  const data={nom,kcal,prot,portion,portionNom,cat};
+  if(recette)data.recette=recette;
+  if(id){const f=food(id);Object.assign(f,data);if(!recette)delete f.recette}else{S.foods.push({id:uid(),...data})}
   save();resetFoodForm();
   $('foodMsg').innerHTML='<span class="ok">Aliment enregistré.</span>';
   renderAll();
 });
 $('foodSearch').addEventListener('input',renderFoods);
+$('foodCatFilter').addEventListener('change',renderFoods);
 function renderFoods(){
   const q=norm($('foodSearch').value.trim());
-  const list=S.foods.filter(f=>norm(f.nom).includes(q)).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  const list=byCat(S.foods,$('foodCatFilter').value).filter(f=>norm(f.nom).includes(q)).sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
   const el=$('foodList');
   if(!list.length){el.innerHTML=`<p class="empty">${S.foods.length?'Aucun aliment ne correspond.':'Ajoutez votre premier aliment avec le formulaire ci-dessus.'}</p>`;return}
   const row=f=>`<div class="item"><div><div class="name">${esc(f.nom)}</div>
-    <div class="meta">Pour 100 g : <span class="chip k">${nf1.format(f.kcal)} kcal</span> <span class="chip p">${nf1.format(f.prot)} g prot.</span>${f.portion?` · ${f.portionNom?esc(f.portionNom):'portion'} = ${nf1.format(f.portion)} g`:''}</div></div>
+    <div class="meta">Pour 100 g : <span class="chip k">${nf1.format(f.kcal)} kcal</span> <span class="chip p">${nf1.format(f.prot)} g prot.</span>${f.portion?` · ${f.portionNom?esc(f.portionNom):'portion'} = ${nf1.format(f.portion)} g`:''}</div>${f.recette?`<div class="meta">Préparation : ${f.recette.items.map(l=>esc(l.nom)+' '+nf1.format(l.g)+' g').join(', ')}</div>`:''}</div>
     <div class="row"><button class="btn ghost small" data-edit="${f.id}" type="button">Modifier</button><button class="btn danger small" data-del="${f.id}" type="button">Supprimer</button></div></div>`;
   el.innerHTML=groupByCat(list).map(([c,fs])=>`<div class="cathead">${esc(c)} · ${fs.length}</div>`+fs.map(row).join('')).join('');
   el.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>{
     const f=food(b.dataset.edit);
     $('foodId').value=f.id;$('foodName').value=f.nom;$('foodKcal').value=fr(f.kcal);$('foodProt').value=fr(f.prot);$('foodPortion').value=fr(f.portion);$('foodPortionNom').value=f.portionNom||'';fillCatSelect(f.cat);
+    if(f.recette){rec=f.recette.items.map(l=>({...l}));$('recPoids').value=fr(f.recette.poids);$('recN').value=fr(f.recette.n);setKind('recipe')}else{rec=[];setKind('simple')}
     $('foodFormTitle').textContent='Modifier « '+f.nom+' »';$('foodSave').textContent='Enregistrer';$('foodCancel').hidden=false;$('foodMsg').textContent='';
     $('foodName').focus();window.scrollTo({top:0});
   });
   el.querySelectorAll('[data-del]').forEach(b=>armed(b,'Supprimer',()=>{
     const id=b.dataset.del;
     if(S.meals.some(m=>m.items.some(l=>l.foodId===id))){$('foodMsg').textContent='Cet aliment est utilisé dans des repas : supprimez d\'abord ces repas.';window.scrollTo({top:0});return}
+    const md=S.models.find(m=>m.items.some(l=>l.foodId===id));
+    if(md){$('foodMsg').textContent=`Cet aliment est utilisé dans le modèle « ${md.nom} » : retirez-le d'abord du modèle.`;window.scrollTo({top:0});return}
     S.foods=S.foods.filter(f=>f.id!==id);save();renderAll();
   }));
 }
@@ -353,8 +454,24 @@ function renderFoods(){
 function groupByCat(list){
   const out=[];
   S.cats.forEach(c=>{const fs=list.filter(f=>f.cat===c);if(fs.length)out.push([c,fs])});
-  const rest=list.filter(f=>!f.cat||!S.cats.includes(f.cat));if(rest.length)out.push(['Autres',rest]);
+  const rest=list.filter(f=>!f.cat||!S.cats.includes(f.cat));if(rest.length)out.push(['Sans catégorie',rest]);
   return out;
+}
+/* choix de catégorie : toutes, fréquents (repas), chaque catégorie non vide, sans catégorie */
+const noCat=f=>!f.cat||!S.cats.includes(f.cat);
+function fillCatFilter(id,withFreq){
+  const sel=$(id),cur=sel.value,n=c=>S.foods.filter(f=>f.cat===c).length,nn=S.foods.filter(noCat).length;
+  sel.innerHTML='<option value="">Toutes les catégories</option>'
+    +(withFreq&&S.meals.length?'<option value="__freq">★ Fréquents</option>':'')
+    +S.cats.filter(c=>n(c)).map(c=>`<option value="${esc(c)}">${esc(c)} (${n(c)})</option>`).join('')
+    +(nn?`<option value="__none">Sans catégorie (${nn})</option>`:'');
+  sel.value=[...sel.options].some(o=>o.value===cur)?cur:'';
+}
+function byCat(list,v){
+  if(!v)return list;
+  if(v==='__none')return list.filter(noCat);
+  if(v==='__freq'){const fq=frequentFoods(10).map(f=>f.id);return fq.map(id=>list.find(f=>f.id===id)).filter(Boolean)}
+  return list.filter(f=>f.cat===v);
 }
 function frequentFoods(n){
   const cnt={};S.meals.forEach(m=>m.items.forEach(l=>{cnt[l.foodId]=(cnt[l.foodId]||0)+1}));
@@ -372,12 +489,13 @@ $('mealDate').value=TODAY;$('mealTime').value=nowTime();
 /* liste des aliments, filtrée par la recherche ; revient sur « Choisir un aliment… » par défaut */
 function fillFoodSelect(keep){
   const sel=$('lineFood'),cur=sel.value,q=norm($('lineSearch').value.trim());
-  const all=[...S.foods].sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  const cv=$('lineCat').value,sorted=[...S.foods].sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  const all=cv==='__freq'?byCat(S.foods,cv):byCat(sorted,cv);
   const list=q?all.filter(f=>norm(f.nom).includes(q)):all;
   if(!S.foods.length){sel.innerHTML='<option value="">Aucun aliment : ajoutez-en d\'abord</option>';updateQtyMode(true);return}
-  const head=q?(list.length?'':'<option value="">Aucun aliment ne correspond</option>'):'<option value="">Choisir un aliment…</option>';
+  const head=q?(list.length?'':'<option value="">Aucun aliment ne correspond</option>'):(list.length?'<option value="">Choisir un aliment…</option>':'<option value="">Aucun aliment dans cette catégorie</option>');
   const opt=f=>`<option value="${f.id}">${esc(f.nom)}</option>`;
-  if(q) sel.innerHTML=head+list.map(opt).join('');
+  if(q||cv) sel.innerHTML=head+list.map(opt).join('');
   else{
     const fq=frequentFoods(10);
     sel.innerHTML=head+(fq.length?`<optgroup label="★ Fréquents">${fq.map(opt).join('')}</optgroup>`:'')
@@ -389,6 +507,7 @@ function fillFoodSelect(keep){
   updateQtyMode(true);
 }
 $('lineSearch').addEventListener('input',()=>fillFoodSelect(false));
+$('lineCat').addEventListener('change',()=>fillFoodSelect(false));
 
 /* quantité en grammes ou en portions (portions proposées par défaut quand l'aliment en a une) */
 let qmode='g';
@@ -488,7 +607,73 @@ function startEditMeal(id){
   $('mealFormTitle').scrollIntoView({behavior:'smooth',block:'start'});
 }
 
+/* reprendre un repas précédent : les 30 derniers jours, les repas identiques n'apparaissent qu'une fois */
+const dayName=d=>d===TODAY?'Aujourd\'hui':d===addDays(TODAY,-1)?'Hier':parse(d).toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'});
+const itemsTxt=items=>items.map(l=>{const f=food(l.foodId);return f?f.nom:'?'});
+function fillCopySelect(){
+  const from=addDays(TODAY,-30),seen=new Set(),out=[];
+  S.meals.filter(m=>m.date>=from&&m.id!==editingId&&m.items.length)
+    .sort((a,b)=>a.date!==b.date?(a.date<b.date?1:-1):-mealSort(a,b))
+    .forEach(m=>{const k=m.type+'|'+m.items.map(l=>l.foodId+':'+l.g).sort().join(',');if(!seen.has(k)&&out.length<25){seen.add(k);out.push(m)}});
+  const short=items=>{const ns=itemsTxt(items);return ns.slice(0,3).join(', ')+(ns.length>3?'…':'')+' ('+nf.format(sum(items).k)+' kcal)'};
+  const mods=[...S.models].sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  $('mealCopy').innerHTML='<option value="">'+(out.length||mods.length?'Choisir un modèle ou un repas récent…':'Aucun modèle ni repas récent')+'</option>'
+    +(mods.length?'<optgroup label="★ Mes modèles">'+mods.map(m=>`<option value="m:${m.id}">${esc(m.nom+' : '+short(m.items))}</option>`).join('')+'</optgroup>':'')
+    +(out.length?'<optgroup label="Repas récents">'+out.map(m=>`<option value="r:${m.id}">${esc(dayName(m.date)+' · '+mealLabel(m)+' : '+short(m.items))}</option>`).join('')+'</optgroup>':'');
+}
+$('mealCopy').addEventListener('change',()=>{
+  const v=$('mealCopy').value,isM=v.startsWith('m:'),id=v.slice(2);
+  const m=isM?S.models.find(x=>x.id===id):S.meals.find(x=>x.id===id);if(!m)return;
+  m.items.filter(l=>food(l.foodId)).forEach(l=>{const ex=draft.find(x=>x.foodId===l.foodId);if(ex)ex.g+=l.g;else draft.push({foodId:l.foodId,g:l.g})});
+  if(!$('mealType').value&&m.type)$('mealType').value=m.type;
+  $('mealCopy').value='';
+  $('mealMsg').innerHTML=`<span class="ok">${isM?'Modèle « '+esc(m.nom)+' » repris':'Repas repris ('+esc(dayName(m.date).toLowerCase()+', '+mealLabel(m))+')'}. Vérifiez les quantités, puis enregistrez.</span>`;
+  renderDraft();
+});
+
+/* ---------- modèles de repas : copies à part, hors bilan ---------- */
+/* petit champ de saisie d'un nom, affiché sur place */
+function askName(host,def,okLabel,cb){
+  host.hidden=false;
+  host.innerHTML=`<div class="row" style="margin-top:8px"><input type="text" maxlength="40" value="${esc(def)}" aria-label="Nom du modèle" placeholder="Nom du modèle, ex. Petit-déj habituel" style="flex:1;min-width:11em">
+    <button class="btn small" type="button">${okLabel}</button><button class="btn ghost small" type="button">Annuler</button></div>`;
+  const [inp,ok,no]=host.querySelectorAll('input,button');
+  const close=()=>{host.innerHTML='';if(host.id==='modelNameRow')host.hidden=true};
+  ok.onclick=()=>{const n=inp.value.trim();if(!n){inp.focus();return}close();cb(n)};
+  no.onclick=close;
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();ok.click()}if(e.key==='Escape')close()});
+  inp.focus();inp.select();
+}
+function saveModel(nom,type,items,msgEl){
+  const ex=S.models.find(m=>norm(m.nom)===norm(nom));
+  const its=items.map(l=>({foodId:l.foodId,g:l.g}));
+  if(ex)Object.assign(ex,{type:type||ex.type,items:its});else S.models.push({id:uid(),nom,type:type||null,items:its});
+  save();renderDayMeals();$('modelsBox').open=true;
+  msgEl.innerHTML=`<span class="ok">Modèle « ${esc(nom)} » ${ex?'mis à jour':'créé'}. Il ne compte pas dans le bilan.</span>`;
+}
+$('modelFromDraft').onclick=()=>{
+  if(!draft.length){$('mealMsg').textContent='Ajoutez d\'abord des aliments, puis enregistrez-les comme modèle.';return}
+  askName($('modelNameRow'),$('mealType').value||'','Créer le modèle',n=>saveModel(n,$('mealType').value,draft,$('mealMsg')));
+};
+function renderModels(){
+  const ms=[...S.models].sort((a,b)=>a.nom.localeCompare(b.nom,'fr'));
+  $('modelsSum').textContent=`Mes modèles de repas (${ms.length})`;
+  const el=$('modelList');
+  if(!ms.length){el.innerHTML='<p class="empty">Aucun modèle. Composez un repas (ou reprenez-en un) puis touchez « Enregistrer comme modèle ».</p>';return}
+  el.innerHTML=ms.map(m=>`<div class="item"><div><div class="name">${esc(m.nom)}${m.type?` <span class="hint">${esc(m.type)}</span>`:''}</div>
+    <div class="meta">${m.items.map(l=>{const f=food(l.foodId);return esc(f?f.nom:'?')+' '+qtyTxt(f,l.g)}).join(' · ')}</div>
+    <div class="meta" style="margin-top:4px">${chips(sum(m.items))}</div><div data-mren-host="${m.id}" hidden></div></div>
+    <div class="row"><button class="btn ghost small" type="button" data-mren="${m.id}">Renommer</button>
+    <button class="btn danger small" type="button" data-mdel="${m.id}">Supprimer</button></div></div>`).join('');
+  el.querySelectorAll('[data-mren]').forEach(b=>b.onclick=()=>{const m=S.models.find(x=>x.id===b.dataset.mren);
+    askName(el.querySelector(`[data-mren-host="${m.id}"]`),m.nom,'Renommer',n=>{
+      if(S.models.some(x=>x!==m&&norm(x.nom)===norm(n))){$('mealMsg').textContent='Un modèle porte déjà ce nom.';return}
+      m.nom=n;save();renderDayMeals()})});
+  el.querySelectorAll('[data-mdel]').forEach(b=>armed(b,'Supprimer',()=>{S.models=S.models.filter(m=>m.id!==b.dataset.mdel);save();renderDayMeals()}));
+}
+
 function renderDayMeals(){
+  fillCopySelect();renderModels();fillCatFilter('lineCat',true);
   const d=$('mealDate').value||TODAY;
   $('dayMealsTitle').textContent=d===TODAY?'Repas d\'aujourd\'hui':'Repas du '+longDate(d);
   const ms=S.meals.filter(m=>m.date===d).sort(mealSort);
@@ -587,7 +772,7 @@ function analyseText(){
   L.push(`Mes objectifs quotidiens : ${nf.format(G.kcal)} kcal et ${nf.format(G.prot)} g de protéines`);
   const used=[...new Set(ms.flatMap(m=>m.items.map(l=>l.foodId)))].map(food).filter(Boolean).sort((x,y)=>x.nom.localeCompare(y.nom,'fr'));
   L.push('');L.push('Aliments utilisés (valeurs que j\'ai saisies, pour 100 g) :');
-  used.forEach(f=>L.push(`- ${f.nom} : ${nf1.format(f.kcal)} kcal, ${nf1.format(f.prot)} g de protéines${f.portion?` (1 ${f.portionNom||'portion'} = ${nf1.format(f.portion)} g)`:''}`));
+  used.forEach(f=>L.push(`- ${f.nom} : ${nf1.format(f.kcal)} kcal, ${nf1.format(f.prot)} g de protéines${f.portion?` (1 ${f.portionNom||'portion'} = ${nf1.format(f.portion)} g)`:''}${f.recette?` ; préparation maison : ${f.recette.items.map(l=>l.nom+' '+nf1.format(l.g)+' g').join(', ')}${f.recette.poids?`, poids final ${nf1.format(f.recette.poids)} g`:''}${f.recette.n?`, ${nf1.format(f.recette.n)} portions`:''}`:''}`));
   if(!used.length)L.push('- aucun');
   let n=0,tk=0,tp=0;
   for(let d=a;d<=b;d=addDays(d,1)){
@@ -616,7 +801,7 @@ try{$('deviceName').value=localStorage.getItem(KEY+'.device')||''}catch(e){}
 $('deviceName').placeholder='ex. Pixel de Christian ('+guessDevice()+' par défaut)';
 $('deviceName').addEventListener('input',e=>{try{localStorage.setItem(KEY+'.device',e.target.value.trim())}catch(err){}});
 const stamp=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+x.getHours()+' h '+String(x.getMinutes()).padStart(2,'0')};
-function backupObj(){return {app:'carnet-repas',version:2,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats}}
+function backupObj(){return {app:'carnet-repas',version:2,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models}}
 $('copyBackup').onclick=()=>{const o=backupObj();showAndCopy(JSON.stringify(o),
   `Sauvegarde du ${stamp(o.savedAt)} (« ${esc(o.device)} ») copiée : ${S.foods.length} aliments, ${S.meals.length} repas. Collez-la dans une note ou un e-mail.`)};
 /* fichier de sauvegarde : partagé (Telegram, Gmail, Drive…) ou enregistré */
@@ -662,7 +847,7 @@ function showImpSummary(){
   const quand=o.savedAt?`du <b>${stamp(o.savedAt)}</b>`:(o.date?`du <b>${longDate(o.date)}</b>`:'(date inconnue)');
   const ou=o.device?`, depuis « <b>${esc(o.device)}</b> »`:'';
   const per=ds.length?` (repas du ${longDate(ds[0])} au ${longDate(ds[ds.length-1])})`:'';
-  box.innerHTML=`<div>Sauvegarde ${quand}${ou} : ${o.foods.length} aliments et ${o.meals.length} repas${per}.<br>
+  box.innerHTML=`<div>Sauvegarde ${quand}${ou} : ${o.foods.length} aliments, ${o.meals.length} repas${Array.isArray(o.models)&&o.models.length?' et '+o.models.length+' modèles':''}${per}.<br>
     Elle <b>remplacera</b> les données de cet appareil : ${S.foods.length} aliments et ${S.meals.length} repas.</div>`;
   box.hidden=false;
 }
@@ -671,18 +856,19 @@ armed($('impBtn'),'Remplacer mes données par cette sauvegarde',()=>{
   const o=readBackup();
   if(!o){$('impMsg').textContent='Ce texte n\'est pas une sauvegarde du carnet. Utilisez « Copier la sauvegarde complète ».';
     $('impBtn').classList.remove('armed');$('impBtn').textContent='Remplacer mes données par cette sauvegarde';return}
-  S={foods:o.foods,meals:o.meals,goals:o.goals||S.goals,cats:Array.isArray(o.cats)?o.cats:[...DEFAULT_CATS],example:false,base:1};editingId=null;draft=[];save();
+  S={foods:o.foods,meals:o.meals,goals:o.goals||S.goals,cats:Array.isArray(o.cats)?o.cats:[...DEFAULT_CATS],models:Array.isArray(o.models)?o.models:[],example:false,base:1};editingId=null;draft=[];save();
   $('impText').value='';$('impFile').value='';$('impSummary').hidden=true;
-  $('impMsg').innerHTML=`<span class="ok">Sauvegarde restaurée : ${S.foods.length} aliments, ${S.meals.length} repas.</span>`;
+  $('impMsg').innerHTML=`<span class="ok">Sauvegarde restaurée : ${S.foods.length} aliments, ${S.meals.length} repas${S.models.length?', '+S.models.length+' modèles':''}.</span>`;
   $('impBtn').classList.remove('armed');$('impBtn').textContent='Remplacer mes données par cette sauvegarde';
   renderDraft();renderAll();
 });
 
 /* ---------- exemples ---------- */
-armed($('clearEx'),'Effacer les repas d\'exemple',()=>{S={foods:S.foods,meals:[],goals:S.goals,cats:S.cats,example:false,base:1};editingId=null;draft=[];save();renderAll();renderDraft()});
+armed($('clearEx'),'Effacer les repas d\'exemple',()=>{S={foods:S.foods,meals:[],goals:S.goals,cats:S.cats,models:S.models,example:false,base:1};editingId=null;draft=[];save();renderAll();renderDraft()});
 
 function renderAll(){
   $('exBanner').hidden=!S.example;
+  fillCatFilter('foodCatFilter');fillCatFilter('lineCat',true);
   renderFoods();fillFoodSelect(true);renderDayMeals();renderBilan();
 }
 try{const t=localStorage.getItem(KEY+'.tab');if(t&&t!=='repas')document.querySelector(`nav button[data-tab="${t}"]`)?.click()}catch(e){}
