@@ -11,16 +11,22 @@
   --bg:#F3F5F1; --surface:#FFFFFF; --ink:#1E2A22; --muted:#66726A; --line:#DDE3DC;
   --accent:#2F6B4F; --accent-ink:#FFFFFF; --accent-soft:#E2EEE6;
   --kcal:#B8681F; --kcal-soft:#F6E7D6; --prot:#2F64A0; --prot-soft:#DDE8F5; --warn:#A8402E; --flash:#FFF3C4; --ok:#E2EEE6;
+  --gluc:#8A6D1F; --gluc-soft:#F1E9D2; --sucres:#A0446E; --sucres-soft:#F3DDE7; --sel:#5E6B78; --sel-soft:#E2E6EA;
+  --fibres:#4F7F2A; --fibres-soft:#E3EDD8; --pot:#6B4FA0; --pot-soft:#E6E0F2;
   --f:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
   --bg:#121815; --surface:#1B231F; --ink:#E6ECE7; --muted:#9AA79F; --line:#2D3832;
   --accent:#6FBF94; --accent-ink:#0E1A13; --accent-soft:#213229;
-  --kcal:#E8A25E; --kcal-soft:#3A2B1C; --prot:#7FAEE6; --prot-soft:#1D2B3D; --warn:#E58A77; --flash:#4A4220; --ok:#213229; color-scheme:dark}}
+  --kcal:#E8A25E; --kcal-soft:#3A2B1C; --prot:#7FAEE6; --prot-soft:#1D2B3D; --warn:#E58A77; --flash:#4A4220; --ok:#213229;
+  --gluc:#D9BC6A; --gluc-soft:#332B17; --sucres:#E592B6; --sucres-soft:#3A1F2B; --sel:#A9B6C3; --sel-soft:#262D33;
+  --fibres:#9CCB72; --fibres-soft:#24301A; --pot:#B49BE6; --pot-soft:#2A2240; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#121815; --surface:#1B231F; --ink:#E6ECE7; --muted:#9AA79F; --line:#2D3832;
   --accent:#6FBF94; --accent-ink:#0E1A13; --accent-soft:#213229;
-  --kcal:#E8A25E; --kcal-soft:#3A2B1C; --prot:#7FAEE6; --prot-soft:#1D2B3D; --warn:#E58A77; --flash:#4A4220; --ok:#213229; color-scheme:dark}
+  --kcal:#E8A25E; --kcal-soft:#3A2B1C; --prot:#7FAEE6; --prot-soft:#1D2B3D; --warn:#E58A77; --flash:#4A4220; --ok:#213229;
+  --gluc:#D9BC6A; --gluc-soft:#332B17; --sucres:#E592B6; --sucres-soft:#3A1F2B; --sel:#A9B6C3; --sel-soft:#262D33;
+  --fibres:#9CCB72; --fibres-soft:#24301A; --pot:#B49BE6; --pot-soft:#2A2240; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -165,6 +171,23 @@ h2{font-size:1rem;margin:16px 0 8px}
 .ce-row .ico{width:38px}
 .toast{position:fixed;left:50%;top:58px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 14px;border-radius:10px;font-size:.9rem;z-index:40;max-width:90vw;text-align:center}
 .help li{margin:6px 0}
+/* notes, lever, coucher (dans Noter et Mes repas) */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.chips button{border:1px solid var(--line);background:var(--surface);color:var(--accent);border-radius:999px;padding:5px 12px;font-size:.85rem;font-weight:700}
+.evt{display:flex;align-items:flex-start;gap:4px;background:var(--surface);border:1px dashed var(--line);border-radius:12px;padding:6px 8px 6px 10px;margin-bottom:10px}
+.evt .t{flex:1;font-size:.9rem;padding-top:6px;overflow-wrap:anywhere;white-space:pre-wrap}
+.evt .t b{font-weight:800}
+/* profil */
+.chk{display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--line);cursor:pointer;margin:0;font-size:1rem;color:var(--ink);font-weight:400}
+.chk:last-child{border-bottom:0}
+.chk input{width:22px;height:22px;flex:none;accent-color:var(--accent)}
+.chk .sub{display:block;font-size:.8rem;color:var(--muted)}
+.lvl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.lvl button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 4px;font-size:.8rem;line-height:1.25;color:var(--ink)}
+.lvl button b{display:block;font-size:1rem}
+.lvl button[aria-pressed="true"]{border:2px solid var(--accent);background:var(--accent-soft)}
+.remind{display:flex;align-items:center;gap:10px;max-width:340px;margin:18px auto 0;background:var(--kcal-soft);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.remind span{flex:1}
 </style>
 </head>
 <body>
@@ -221,7 +244,17 @@ const BASE=[
  ['Boissons',[]]
 ];
 const baseFoods=()=>BASE.flatMap(([cat,items])=>items.map(([nom,kcal,prot,portion,portionNom])=>({id:uid(),nom,kcal,prot,portion:portion||null,portionNom:portionNom||null,cat})));
-function seed(){return {foods:baseFoods(),meals:[],goals:{kcal:2000,prot:70},cats:[...DEFAULT_CATS],models:[],base:1}}
+/* nutriments au choix (3 au plus) : les protéines restent dans f.prot, les autres dans f.n ; une valeur absente = « non renseigné », pas 0 */
+const NUTS={
+  prot:{label:'Protéines',short:'prot.',unit:'g',dir:'min'},
+  gluc:{label:'Glucides',short:'gluc.',unit:'g',dir:'max'},
+  sucres:{label:'Sucres',short:'sucres',unit:'g',dir:'max'},
+  sel:{label:'Sel',short:'sel',unit:'g',dir:'max'},
+  fibres:{label:'Fibres',short:'fibres',unit:'g',dir:'min'},
+  pot:{label:'Potassium',short:'potass.',unit:'mg',dir:'max'}};
+const NKEYS=Object.keys(NUTS),MAXNUTS=3;
+function seed(){return {foods:baseFoods(),meals:[],goals:{kcal:2000,prot:70},cats:[...DEFAULT_CATS],models:[],base:1,
+  profile:{nuts:['prot'],sommeil:false,kcalPerso:false,niveau:'normal'},weights:[],notes:[]}}
 let S;
 try{S=JSON.parse(store.get(KEY))}catch(e){S=null}
 if(!S||!Array.isArray(S.foods))S=seed();
@@ -230,6 +263,13 @@ function migrate(){
   if(!Array.isArray(S.cats))S.cats=[...DEFAULT_CATS];
   if(!Array.isArray(S.models))S.models=[];
   if(!S.goals)S.goals={kcal:2000,prot:70};
+  /* ajouts du 25/10/2026 : un carnet existant garde ses objectifs saisis à la main et le suivi des protéines */
+  if(!S.profile)S.profile={nuts:['prot'],sommeil:false,kcalPerso:true,niveau:'normal'};
+  if(!Array.isArray(S.profile.nuts))S.profile.nuts=['prot'];
+  S.profile.nuts=S.profile.nuts.filter(k=>NUTS[k]);
+  if(!S.profile.niveau)S.profile.niveau='normal';
+  if(!Array.isArray(S.weights))S.weights=[];
+  if(!Array.isArray(S.notes))S.notes=[];
   S.base=1;delete S.example;
 }
 migrate();
@@ -249,6 +289,20 @@ const pnom=f=>f.portionNom||'portion';
 /* « 1 tranche (30 g) », « 2 × tranche (60 g) » quand ça tombe juste, sinon « 75 g » */
 const qty=(f,g)=>{if(f&&f.portion){const n=g/f.portion;if(Math.abs(n*4-Math.round(n*4))<.02)return (n===1?'1 ':nf1(n)+' × ')+pnom(f)+' ('+nf1(g)+' g)'}return nf1(g)+' g'};
 const usedMsg=n=>`Cette modification sera répercutée dans ${n>1?'les '+n+' repas':'le repas'} où cet aliment est déjà présent.`;
+/* nutriments suivis : valeurs, sommes, textes */
+const TR=()=>NKEYS.filter(k=>S.profile.nuts.includes(k));
+const nget=(f,k)=>{if(!f)return null;const v=k==='prot'?f.prot:(f.n?f.n[k]:null);return v==null||v===''?null:v};
+const nv=(k,v)=>NUTS[k].unit==='mg'?nf(v):nf1(v);
+const ntxt=(k,v)=>(v==null?'?':nv(k,v))+' '+NUTS[k].unit+' '+NUTS[k].short;
+const nlineF=f=>TR().map(k=>ntxt(k,nget(f,k))).join(' · ');
+const nlineL=(f,g)=>TR().map(k=>{const v=nget(f,k);return ntxt(k,v==null?null:v*g/100)}).join(' · ');
+function sumN(items,k){let v=0,miss=false;items.forEach(l=>{const x=nget(food(l.foodId),k);if(x==null)miss=true;else v+=x*l.g/100});return {v,miss}}
+const sumTxt=(items,k)=>{const s=sumN(items,k);return nv(k,s.v)+(s.miss?'*':'')+' '+NUTS[k].unit+' '+NUTS[k].short};
+const missingFoods=()=>S.foods.filter(f=>!f.arch&&TR().some(k=>nget(f,k)==null));
+const goalTxt=k=>{const g=S.goals[k];return g==null?'objectif à fixer (Profil)':'/ '+(NUTS[k].dir==='max'?'max. ':'')+nv(k,g)+' '+NUTS[k].unit+' '+NUTS[k].label.toLowerCase()};
+/* poids, notes, lever et coucher */
+const lastWeight=()=>{const w=[...S.weights].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));return w[w.length-1]||null};
+const EVT={note:'Note',lever:'Lever',coucher:'Coucher'};
 
 /* ================= navigation (la flèche du téléphone revient à l'écran précédent) ================= */
 let view='home',back=[],afterBack=null;const state={};
@@ -303,6 +357,7 @@ function numpad(opts){
     box.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>press(b.dataset.k));
   };
   const press=k=>{
+    if(k==='ok'&&s===''&&opts.allowEmpty){bg.remove();document.removeEventListener('keydown',kb);opts.done(null);return}
     if(k==='ok'){const n=num();if(s===''||isNaN(n)||(opts.positive!==false&&!(n>0))){toast('Tapez une valeur.');return}bg.remove();document.removeEventListener('keydown',kb);opts.done(modes?modes[m].toG(n):n);return}
     if(k==='⌫')s=s.slice(0,-1);
     else if(k===','){if(!s.includes(','))s=(s||'0')+','}
@@ -317,22 +372,24 @@ function qtyPad(f,g0,done,opt){
   const modes=[];
   if(f.portion)modes.push({label:'En portions',unit:'× '+pnom(f),toG:n=>n*f.portion,fromG:g=>g/f.portion});
   modes.push({label:'En grammes',unit:'g',toG:n=>n,fromG:g=>g});
-  numpad({title:esc(f.nom),sub:`${nf1(f.kcal)} kcal · ${nf1(f.prot)} g prot. pour 100 g${f.portion?' · 1 '+esc(pnom(f))+' = '+nf1(f.portion)+' g':''}`,
+  const nl=nlineF(f);
+  numpad({title:esc(f.nom),sub:`${nf1(f.kcal)} kcal${nl?' · '+nl:''} pour 100 g${f.portion?' · 1 '+esc(pnom(f))+' = '+nf1(f.portion)+' g':''}`,
     value:g0,modes,okLabel:opt.okLabel||(g0==null?'Ajouter au repas':'Valider'),
-    calc:g=>`= ${nf1(g)} g · ${nf(f.kcal*g/100)} kcal · ${nf1(f.prot*g/100)} g prot.`,done,
+    calc:g=>{const l=nlineL(f,g);return `= ${nf1(g)} g · ${nf(f.kcal*g/100)} kcal${l?' · '+l:''}`},done,
     onEdit:opt.noEdit||f.recette?null:()=>correctValues(f,()=>qtyPad(f,g0,done,opt))});
 }
-/* correction des valeurs depuis le pavé : calories, protéines, portion ; puis retour à la quantité */
+/* correction des valeurs depuis le pavé : calories, nutriments suivis, portion ; puis retour à la quantité */
 function correctValues(f,backTo){
   const run=()=>{
-    const v={},tot=f.portion?3:2;
-    numpad({title:'Calories pour 100 g',sub:esc(f.nom)+' · correction (1/'+tot+')',value:f.kcal,unit:'kcal',positive:false,okLabel:'Suivant',done:k=>{v.kcal=k;
-      numpad({title:'Protéines pour 100 g',sub:esc(f.nom)+' · correction (2/'+tot+')',value:f.prot,unit:'g',positive:false,okLabel:f.portion?'Suivant':'Enregistrer',done:p=>{v.prot=p;
-        const apply=()=>{Object.assign(f,v);save();if(view==='noter'){drawBasket();fillNoterList()}toast('Valeurs de « '+f.nom+' » corrigées.');backTo()};
-        if(f.portion)numpad({title:'Poids d\'une portion ('+esc(pnom(f))+')',sub:esc(f.nom)+' · correction (3/3)',value:f.portion,unit:'g',okLabel:'Enregistrer',done:po=>{v.portion=po;apply()}});
-        else apply();
-      }});
-    }});
+    const steps=[{key:'kcal',title:'Calories pour 100 g',unit:'kcal',value:f.kcal},
+      ...TR().map(k=>({key:k,title:NUTS[k].label+' pour 100 g',unit:NUTS[k].unit,value:nget(f,k),empty:true})),
+      ...(f.portion?[{key:'portion',title:'Poids d\'une portion ('+esc(pnom(f))+')',unit:'g',value:f.portion,positive:true}]:[])];
+    const v={};
+    const apply=()=>{Object.entries(v).forEach(([k,x])=>{if(k==='kcal'||k==='prot'||k==='portion')f[k]=x;else{f.n=f.n||{};f.n[k]=x}});
+      save();if(view==='noter'){drawBasket();fillNoterList()}toast('Valeurs de « '+f.nom+' » corrigées.');backTo()};
+    const ask1=i=>{const s=steps[i];numpad({title:s.title,sub:esc(f.nom)+' · correction ('+(i+1)+'/'+steps.length+')'+(s.empty?' · laissez vide si inconnu':''),value:s.value,unit:s.unit,positive:!!s.positive,allowEmpty:!!s.empty,
+      okLabel:i<steps.length-1?'Suivant':'Enregistrer',done:x=>{v[s.key]=x;if(i<steps.length-1)ask1(i+1);else apply()}})};
+    ask1(0);
   };
   const n=usedMeals(f.id);
   if(n)ask('Corriger « '+esc(f.nom)+' »',usedMsg(n),[{label:'Continuer',fn:run},{label:'Annuler',cls:'ghost',fn:backTo}]);else run();
@@ -340,13 +397,20 @@ function correctValues(f,backTo){
 
 /* ================= sélecteur de liste (Noter, Mes aliments, ingrédients) ================= */
 function selectorOptions(ctx){
-  const active=S.foods.filter(f=>!f.arch);
-  const o=[['toutes','Toutes']];
-  if(ctx==='noter'&&S.models.length)o.push(['types','Repas types']);
-  if(ctx!=='ingr'&&active.some(f=>f.recette))o.push(['preps','Préparations']);
-  S.cats.filter(c=>active.some(f=>f.cat===c)).forEach(c=>o.push(['c:'+c,c]));
-  if(active.some(f=>catOf(f)===NOCAT))o.push(['c:'+NOCAT,NOCAT]);
-  if(ctx==='aliments'&&S.foods.some(f=>f.arch))o.push(['arch','Archivés']);
+  /* le nombre d'éléments suit chaque nom : « Toutes (35) » ; les archivés ne comptent que dans « Archivés » */
+  const active=S.foods.filter(f=>!f.arch),cnt=(l,n)=>l+' ('+n+')';
+  const o=[['toutes',cnt('Toutes',active.length)]];
+  if(ctx==='noter'&&S.models.length)o.push(['types',cnt('Repas types',S.models.length)]);
+  if(ctx==='noter'&&S.meals.length)o.push(['prev','Reprendre un repas noté…']);
+  const preps=active.filter(f=>f.recette).length;
+  if(ctx!=='ingr'&&preps)o.push(['preps',cnt('Préparations',preps)]);
+  S.cats.forEach(c=>{const n=active.filter(f=>f.cat===c).length;if(n)o.push(['c:'+c,cnt(c,n)])});
+  const nc=active.filter(f=>catOf(f)===NOCAT).length;
+  if(nc)o.push(['c:'+NOCAT,cnt(NOCAT,nc)]);
+  const todo=missingFoods().length;
+  if(ctx==='aliments'&&todo)o.push(['todo',cnt('À compléter',todo)]);
+  const na=S.foods.filter(f=>f.arch).length;
+  if(ctx==='aliments'&&na)o.push(['arch',cnt('Archivés',na)]);
   return o;
 }
 function listFor(sel,q){
@@ -358,6 +422,7 @@ function listFor(sel,q){
   if(v==='types')return {models:[...S.models].sort(byName),foods:[]};
   if(v==='preps')return {models:[],foods:act.filter(f=>f.recette).sort(byName)};
   if(v==='arch')return {models:[],foods:pool.filter(f=>f.arch).sort(byName)};
+  if(v==='todo')return {models:[],foods:missingFoods().sort(byName)};
   if(v.startsWith('c:')){const c=v.slice(2);return {models:[],foods:act.filter(f=>catOf(f)===c).sort(byName),cat:c}}
   return {models:[],foods:act.sort(byName),grouped:true};
 }
@@ -365,7 +430,7 @@ function foodRow(f,ctx){
   if(ctx!=='aliments')
     return `<div class="row one"><div class="main" data-f="${f.id}"><span class="name">${esc(f.nom)}</span>${f.recette?'<span class="tag">prép.</span>':''}</div><span class="kc">${nf(f.kcal)} kcal</span></div>`;
   return `<div class="row"><div class="main" data-f="${f.id}"><div class="name">${esc(f.nom)}${f.recette?'<span class="tag">préparation</span>':''}${f.arch?'<span class="tag arch">archivé</span>':''}</div>
-   <div class="vals">${nf1(f.kcal)} kcal · ${nf1(f.prot)} g prot. /100 g${f.portion?' · 1 '+esc(pnom(f))+' = '+nf1(f.portion)+' g':''}</div></div></div>`;
+   <div class="vals">${[nf1(f.kcal)+' kcal',nlineF(f)].filter(Boolean).join(' · ')} /100 g${f.portion?' · 1 '+esc(pnom(f))+' = '+nf1(f.portion)+' g':''}</div></div></div>`;
 }
 function renderList(sel,q){
   const r=listFor(sel,q);let h='';
@@ -374,8 +439,8 @@ function renderList(sel,q){
     const groups=[...S.cats,NOCAT].map(c=>[c,r.foods.filter(f=>catOf(f)===c)]).filter(x=>x[1].length);
     h+=groups.map(([c,fs])=>`<div class="row sep">${esc(c)}</div>`+fs.map(f=>foodRow(f,sel.ctx)).join('')).join('');
   }else h+=r.foods.map(f=>foodRow(f,sel.ctx)).join('');
-  if(!r.models.length&&!r.foods.length)h+=`<div class="row muted">${q?'Rien trouvé pour « '+esc(q)+' ».':sel.v==='arch'?'Aucun aliment archivé.':'Aucun aliment ici pour l\'instant.'}</div>`;
-  if(sel.ctx!=='ingr'&&sel.v!=='arch'&&sel.v!=='types'){
+  if(!r.models.length&&!r.foods.length)h+=`<div class="row muted">${q?'Rien trouvé pour « '+esc(q)+' ».':sel.v==='arch'?'Aucun aliment archivé.':sel.v==='todo'?'Tous vos aliments sont complets.':'Aucun aliment ici pour l\'instant.'}</div>`;
+  if(sel.ctx!=='ingr'&&sel.v!=='arch'&&sel.v!=='types'&&sel.v!=='todo'){
     const c=r.cat&&r.cat!==NOCAT?r.cat:null;
     h+=`<div class="row add" data-new="${esc(c||'')}">+ Nouvel aliment${c?' dans « '+esc(c)+' »':q?' « '+esc(q.trim())+' »':''}</div>`;
   }
@@ -387,7 +452,7 @@ function pickBar(sel){
     <button class="loupe" id="loupe" aria-pressed="${!!sel.search}" aria-label="${sel.search?'Fermer la recherche':'Rechercher'}">${sel.search?ic.x:ic.search}</button></div>`;
 }
 function wirePick(root,sel,redraw,refill,onSearchFocus){
-  const s=root.querySelector('#sel');if(s)s.onchange=e=>{sel.v=e.target.value;refill();const sc=root.querySelector('.scroll');if(sc)sc.scrollTop=0};
+  const s=root.querySelector('#sel');if(s)s.onchange=e=>{if(e.target.value==='prev'){e.target.value=sel.v;mealPicker();return}sel.v=e.target.value;refill();const sc=root.querySelector('.scroll');if(sc)sc.scrollTop=0};
   root.querySelector('#loupe').onclick=()=>{sel.search=!sel.search;sel.q='';redraw();if(sel.search)setTimeout(()=>{const q=root.querySelector('#q');q&&q.focus()},30)};
   const q=root.querySelector('#q');if(q){q.oninput=e=>{sel.q=e.target.value;refill()};if(onSearchFocus){q.onfocus=()=>onSearchFocus(true);q.onblur=()=>onSearchFocus(false)}}
 }
@@ -395,6 +460,7 @@ function wirePick(root,sel,redraw,refill,onSearchFocus){
 /* ================= ACCUEIL ================= */
 function home(){
   app.className='';
+  const lw=lastWeight(),remindW=lw&&lw.date<=addDays(todayIso(),-7);
   app.innerHTML=`<div class="cover"><div class="logo">${ic.fork}</div><div class="title">NutriNote</div>
     <p class="slogan l1">Noter votre alimentation</p><p class="slogan">Export intégré pour analyse par une IA</p></div>
   <div class="bigs">
@@ -402,6 +468,7 @@ function home(){
     <button id="bAlim">${ic.book}Mes aliments</button>
     <button id="bRepas">${ic.cal}Mes repas</button>
   </div>
+  ${remindW?`<div class="remind"><span>Une semaine depuis votre dernière pesée.</span><button class="btn small" id="bW">Noter mon poids</button></div>`:''}
   <div style="height:90px"></div>
   <div class="dock"><div class="in">
     <button data-v="analyse">${ic.ai}Analyse</button>
@@ -412,6 +479,7 @@ function home(){
   $('#bNoter').onclick=()=>startNoter();
   $('#bAlim').onclick=()=>{alimSel={ctx:'aliments',v:'toutes',search:false,q:''};go('aliments')};
   $('#bRepas').onclick=()=>{viewDate=todayIso();mode='jour';go('repas')};
+  const bw=$('#bW');if(bw)bw.onclick=()=>addWeight(home);
   app.querySelectorAll('.dock [data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v));
 }
 
@@ -439,11 +507,13 @@ function noter(){
   app.innerHTML=top(d.editId?'Modifier le repas':'Noter un repas')+`
   ${d.editId?`<div class="banner">Modification du repas ${d.time?'de '+fmtT(d.time):'sans heure'}, ${longDate(d.date).toLowerCase()}</div>`:d.date!==todayIso()?`<div class="banner">Ce repas sera noté au ${longDate(d.date).toLowerCase()}</div>`:''}
   <div class="headgrid"><input type="date" id="dDate" value="${d.date}" aria-label="Date" max="${todayIso()}"><input type="time" id="dTime" value="${d.time||''}" aria-label="Heure"></div>
+  ${d.editId?'':`<div class="chips"><button data-ev="note">+ Note</button>${S.profile.sommeil?'<button data-ev="lever">+ Lever</button><button data-ev="coucher">+ Coucher</button>':''}</div>`}
   <div class="upper" id="upper">${pickBar(noterSel)}<div class="scroll"><div class="list" id="res"></div></div></div>
   <div class="basket" id="basket"></div>`;
   bind();
   $('#dDate').onchange=e=>{d.date=e.target.value||todayIso();saveDraft();noter()};
   $('#dTime').onchange=e=>{d.time=e.target.value;saveDraft()};
+  app.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>evtSheet(b.dataset.ev,d.date,hm(),null,null));
   fillNoterList();drawBasket();
   wirePick($('#upper'),noterSel,()=>noter(),fillNoterList,v=>$('#basket').classList.toggle('mini',v));
 }
@@ -457,9 +527,9 @@ function drawBasket(){
   const d=draft,b=$('#basket');if(!b||!d)return;const t=sum(d.items);
   const items=d.items.slice().reverse();
   b.innerHTML=`<div class="bh"><b>Repas en cours${d.items.length?' · '+d.items.length:''}</b>${d.items.length?'<button class="lnk" id="keepType">☆ Garder comme repas type</button>':''}</div>
-   <div class="items">${items.length?items.map(l=>{const f=food(l.foodId);return `<div class="row ${d.flash===l.foodId||d.flash==='*'?'flash':''}"><div class="main" data-q="${l.foodId}"><div class="name">${esc(f?f.nom:'?')}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} kcal · ${nf1(val(l).p)} g prot.</div></div><button class="ico" data-q="${l.foodId}" aria-label="Changer la quantité">${ic.pen}</button><button class="ico del" data-rm="${l.foodId}" aria-label="Retirer">${ic.x}</button></div>`}).join('')
+   <div class="items">${items.length?items.map(l=>{const f=food(l.foodId);return `<div class="row ${d.flash===l.foodId||d.flash==='*'?'flash':''}"><div class="main" data-q="${l.foodId}"><div class="name">${esc(f?f.nom:'?')}</div><div class="vals">${[qty(f,l.g),nf(val(l).k)+' kcal',nlineL(f,l.g)].filter(Boolean).join(' · ')}</div></div><button class="ico" data-q="${l.foodId}" aria-label="Changer la quantité">${ic.pen}</button><button class="ico del" data-rm="${l.foodId}" aria-label="Retirer">${ic.x}</button></div>`}).join('')
      :'<div class="empty-hint">Touchez un aliment au-dessus :<br>il s\'ajoute ici.</div>'}</div>
-   <div class="foot"><div class="tot"><span class="k">${nf(t.k)} kcal</span><span class="p">${nf1(t.p)} g prot.</span></div><button class="btn" id="saveMeal" ${d.items.length?'':'disabled'}>${d.editId?'Enregistrer':'Enregistrer le repas'}</button></div>`;
+   <div class="foot"><div class="tot"><span class="k">${nf(t.k)} kcal</span>${TR().map(k=>`<span style="color:var(--${k})">${sumTxt(d.items,k)}</span>`).join('')}</div><button class="btn" id="saveMeal" ${d.items.length?'':'disabled'}>${d.editId?'Enregistrer':'Enregistrer le repas'}</button></div>`;
   d.flash=null;
   b.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{d.items=d.items.filter(l=>l.foodId!==x.dataset.rm);saveDraft();drawBasket()});
   b.querySelectorAll('[data-q]').forEach(x=>x.onclick=()=>{const l=d.items.find(l=>l.foodId===x.dataset.q);qtyPad(food(l.foodId),l.g,g=>{l.g=g;saveDraft();drawBasket()})});
@@ -473,6 +543,44 @@ function drawBasket(){
     back=['home'];view='repas';history.replaceState({v:'repas'},'');render();window.scrollTo(0,0);
     toast(old?'Repas modifié.':'Repas enregistré.');
   };
+}
+/* note libre, lever, coucher : une ligne datée, hors calcul, placée avec les repas dans l'ordre de l'heure */
+function evtSheet(kind,date,time,after,ex){
+  const isNote=kind==='note';
+  const bg=overlay('',`<div class="sheet"><h3>${ex?'Modifier : ':''}${isNote?'Note':EVT[kind]}</h3>
+    ${isNote?'<p class="muted" style="margin:4px 0 0">Quelques mots, hors calcul : « 2 h de vélo », « un peu de fièvre »… Ils partent dans l\'export pour une IA.</p>':''}
+    <div class="headgrid" style="margin-top:10px"><input type="date" id="eDate" value="${date}" max="${todayIso()}" aria-label="Date"><input type="time" id="eTime" value="${time||''}" aria-label="Heure"></div>
+    ${isNote?`<textarea id="eTxt" rows="4" maxlength="500" placeholder="Votre note">${esc(ex?ex.text:'')}</textarea>`:''}
+    <div class="grid2" style="margin-top:10px"><button class="btn ghost" id="eX">Annuler</button><button class="btn" id="eOk">Enregistrer</button></div></div>`);
+  const t=bg.querySelector('#eTxt');if(t)setTimeout(()=>t.focus(),30);
+  bg.querySelector('#eX').onclick=()=>bg.remove();
+  bg.querySelector('#eOk').onclick=()=>{
+    const data={kind,date:bg.querySelector('#eDate').value||todayIso(),time:bg.querySelector('#eTime').value||'',text:t?t.value.trim():''};
+    if(isNote&&!data.text){t.focus();return}
+    if(ex)Object.assign(ex,data);else S.notes.push({id:uid(),...data});
+    save();bg.remove();toast((isNote?'Note':EVT[kind])+' enregistré'+(isNote?'e':'')+'.');after&&after();
+  };
+}
+/* reprendre un repas déjà noté : on navigue de jour en jour, on touche un repas, ses aliments s'ajoutent au repas en cours */
+function mealPicker(){
+  const d=draft,dates=[...new Set(S.meals.filter(m=>m.id!==d.editId).map(m=>m.date))].sort();if(!dates.length)return;
+  let i=dates.filter(x=>x<d.date).length-1;if(i<0)i=dates.filter(x=>x<=d.date).length-1;if(i<0)i=dates.length-1;
+  const bg=overlay('',`<div class="sheet tall" id="mp"></div>`),sh=bg.querySelector('#mp');
+  const draw=()=>{const day=dates[i],ms=S.meals.filter(m=>m.date===day&&m.id!==d.editId).sort(mealSort);
+    sh.innerHTML=`<div class="sheet-h"><h3>Reprendre un repas noté</h3><button class="ico" id="mpx" aria-label="Fermer">${ic.x}</button></div>
+      <div class="daynav" style="margin-top:8px"><button id="mpp" aria-label="Jour précédent" ${i?'':'disabled'}>‹</button><label class="pickdate">${longDate(day)} ${ic.cal}<input type="date" id="mpd" value="${day}" max="${todayIso()}" aria-label="Choisir une date"></label><button id="mpn" aria-label="Jour suivant" ${i<dates.length-1?'':'disabled'}>›</button></div>
+      <p class="muted" style="margin:0">Touchez un repas : ses aliments s'ajoutent au repas en cours, vous pourrez changer les quantités.</p>
+      <div class="scroll">${ms.map(m=>`<div class="meal" data-pm="${m.id}" style="cursor:pointer"><div class="meal-h"><div class="t">${fmtT(m.time)} <span>· ${nf(sum(m.items).k)} kcal</span></div></div>
+        <div class="row" style="display:block"><div class="vals">${m.items.map(l=>{const f=food(l.foodId);return esc(f?f.nom:'?')+' '+qty(f,l.g)}).join(' ; ')}</div></div></div>`).join('')}</div>`;
+    sh.querySelector('#mpx').onclick=()=>bg.remove();
+    sh.querySelector('#mpp').onclick=()=>{if(i>0){i--;draw()}};
+    sh.querySelector('#mpn').onclick=()=>{if(i<dates.length-1){i++;draw()}};
+    const pd=sh.querySelector('#mpd');pd.onclick=e=>{try{e.target.showPicker()}catch(_){}};
+    pd.onchange=e=>{const v=e.target.value;if(!v)return;const j=dates.filter(x=>x<=v).length-1;i=j<0?0:j;draw();if(dates[i]!==v)toast('Pas de repas ce jour-là : voici le plus proche avant.')};
+    sh.querySelectorAll('[data-pm]').forEach(x=>x.onclick=()=>{const m=S.meals.find(z=>z.id===x.dataset.pm);
+      m.items.filter(l=>food(l.foodId)).forEach(l=>addToDraft(l.foodId,l.g));d.flash='*';bg.remove();drawBasket();toast('Repas de '+fmtT(m.time)+' du '+longDate(m.date).toLowerCase()+' ajouté.')});
+  };
+  draw();
 }
 function saveModel(nom,items,after){
   const its=items.map(l=>({foodId:l.foodId,g:l.g}));
@@ -501,23 +609,29 @@ function aliments(){
 let fd=null;
 function openFiche(){
   const f=state.editFood?food(state.editFood):null;
-  if(f)fd={nom:f.nom,cat:f.cat&&S.cats.includes(f.cat)?f.cat:null,kcal:f.kcal,prot:f.prot,portion:f.portion||null,portionNom:f.portionNom||'',
-    isPrep:!!f.recette,rec:f.recette?f.recette.items.map(l=>({...l})):[],poids:f.recette?f.recette.poids:null,parts:f.recette?f.recette.n:null};
-  else fd={nom:state.prefill?state.prefill.charAt(0).toUpperCase()+state.prefill.slice(1):'',cat:state.presetCat||null,kcal:null,prot:null,portion:null,portionNom:'',isPrep:false,rec:[],poids:null,parts:null};
+  if(f)fd={nom:f.nom,cat:f.cat&&S.cats.includes(f.cat)?f.cat:null,kcal:f.kcal,prot:f.prot==null?null:f.prot,n:{...(f.n||{})},portion:f.portion||null,portionNom:f.portionNom||'',
+    /* recette figée, mais un nutriment ajouté depuis est repris de l'aliment d'origine s'il manque à l'ingrédient */
+    isPrep:!!f.recette,rec:f.recette?f.recette.items.map(l=>{const c={...l,n:{...(l.n||{})}},src=food(l.foodId);
+      if(src){if(c.prot==null&&src.prot!=null)c.prot=src.prot;NKEYS.forEach(k=>{if(k!=='prot'&&c.n[k]==null&&nget(src,k)!=null)c.n[k]=nget(src,k)})}return c}):[],poids:f.recette?f.recette.poids:null,parts:f.recette?f.recette.n:null};
+  else fd={nom:state.prefill?state.prefill.charAt(0).toUpperCase()+state.prefill.slice(1):'',cat:state.presetCat||null,kcal:null,prot:null,n:{},portion:null,portionNom:'',isPrep:false,rec:[],poids:null,parts:null};
   fiche();
 }
-const recSum=()=>fd.rec.reduce((a,l)=>{a.k+=l.kcal*l.g/100;a.p+=l.prot*l.g/100;a.g+=l.g;return a},{k:0,p:0,g:0});
+const recSum=()=>fd.rec.reduce((a,l)=>{a.k+=l.kcal*l.g/100;a.g+=l.g;return a},{k:0,g:0});
+/* nutriment d'une préparation : seulement si tous les ingrédients ont la valeur ; total pour le poids des ingrédients */
+const recN=k=>{let v=0;for(const l of fd.rec){const x=nget(l,k);if(x==null)return null;v+=x*l.g/100}return v};
+const ingCopy=f=>({foodId:f.id,nom:f.nom,kcal:f.kcal,prot:f.prot==null?null:f.prot,n:{...(f.n||{})}});
 function fiche(){
   app.className='';
   const f=state.editFood?food(state.editFood):null;
   const nfield=(id,v,unit,ph)=>`<button class="field ${v==null?'empty':''}" id="${id}">${v==null?ph:nf1(v)+' '+unit}<span class="chev">123</span></button>`;
   let prepHtml='';
   if(fd.isPrep){
-    const t=recSum(),poids=fd.poids||t.g;
-    prepHtml=`<label>Ingrédients</label><div class="list" id="recList">${fd.rec.length?fd.rec.map((l,i)=>`<div class="row"><div class="main" data-rq="${i}"><div class="name">${esc(l.nom)}</div><div class="vals">${nf1(l.g)} g · ${nf(l.kcal*l.g/100)} kcal · ${nf1(l.prot*l.g/100)} g prot.</div></div><button class="ico del" data-rr="${i}" aria-label="Retirer">${ic.x}</button></div>`).join(''):'<div class="row muted">Aucun ingrédient pour l\'instant.</div>'}
+    const t=recSum(),poids=fd.poids||t.g,tr=TR();
+    const nt=(m)=>tr.map(k=>{const v=recN(k);return ntxt(k,v==null?null:v*m)}).join(' · ');
+    prepHtml=`<label>Ingrédients</label><div class="list" id="recList">${fd.rec.length?fd.rec.map((l,i)=>`<div class="row"><div class="main" data-rq="${i}"><div class="name">${esc(l.nom)}</div><div class="vals">${[nf1(l.g)+' g',nf(l.kcal*l.g/100)+' kcal',nlineL(l,l.g)].filter(Boolean).join(' · ')}</div></div><button class="ico del" data-rr="${i}" aria-label="Retirer">${ic.x}</button></div>`).join(''):'<div class="row muted">Aucun ingrédient pour l\'instant.</div>'}
       <div class="row add" id="addIng">+ Ajouter un ingrédient</div></div>
       <div class="grid2"><div><label>Poids final (si la cuisson le change)</label>${nfield('fpf',fd.poids,'g',t.g?nf1(t.g)+' g (somme)':'—')}</div><div><label>Nombre de parts (facultatif)</label>${nfield('fnp',fd.parts,'parts','—')}</div></div>
-      ${fd.rec.length?`<div class="note">Total : ${nf(t.k)} kcal · ${nf1(t.p)} g prot. pour ${nf1(poids)} g<br>Pour 100 g : <b>${nf1(t.k/poids*100)} kcal · ${nf1(t.p/poids*100)} g prot.</b>${fd.parts?`<br>1 part (${nf1(poids/fd.parts)} g) : ${nf(t.k/fd.parts)} kcal · ${nf1(t.p/fd.parts)} g prot.`:''}</div>`:''}
+      ${fd.rec.length?`<div class="note">Total : ${[nf(t.k)+' kcal',nt(1)].filter(Boolean).join(' · ')} pour ${nf1(poids)} g<br>Pour 100 g : <b>${[nf1(t.k/poids*100)+' kcal',nt(100/poids)].filter(Boolean).join(' · ')}</b>${fd.parts?`<br>1 part (${nf1(poids/fd.parts)} g) : ${[nf(t.k/fd.parts)+' kcal',nt(1/fd.parts)].filter(Boolean).join(' · ')}`:''}</div>`:''}
       <label for="fpn">Nom d'une part (facultatif)</label><input id="fpn" value="${esc(fd.portionNom||'')}" placeholder="ex. yaourt" autocomplete="off" maxlength="40">`;
   }
   app.innerHTML=top(f?'Fiche « '+esc(f.nom)+' »':'Créer un aliment')+`
@@ -525,7 +639,7 @@ function fiche(){
   ${f?'':`<div class="seg"><button data-p="0" aria-pressed="${!fd.isPrep}">Aliment simple</button><button data-p="1" aria-pressed="${fd.isPrep}">Préparation</button></div>`}
   <label for="fn">Nom</label><input id="fn" value="${esc(fd.nom)}" placeholder="${fd.isPrep?'ex. Yaourt maison':'ex. Comté'}" autocomplete="off" maxlength="60">
   <label>Catégorie</label><button class="field ${fd.cat?'':'empty'}" id="fc">${fd.cat?esc(fd.cat):'Choisissez une catégorie'}<span class="chev">▼</span></button>
-  ${fd.isPrep?prepHtml:`<div class="grid2"><div><label>Calories pour 100 g</label>${nfield('fk',fd.kcal,'kcal','à remplir')}</div><div><label>Protéines pour 100 g</label>${nfield('fp',fd.prot,'g','à remplir')}</div></div>
+  ${fd.isPrep?prepHtml:`<div class="grid2"><div><label>Calories pour 100 g</label>${nfield('fk',fd.kcal,'kcal','à remplir')}</div>${TR().map(k=>`<div><label>${NUTS[k].label} pour 100 g</label>${nfield('fn_'+k,k==='prot'?fd.prot:(fd.n[k]==null?null:fd.n[k]),NUTS[k].unit,'à remplir')}</div>`).join('')}</div>
   <div class="grid2"><div><label>Portion (facultatif)</label>${nfield('fpo',fd.portion,'g','—')}</div><div><label for="fpn">Nom de la portion</label><input id="fpn" value="${esc(fd.portionNom||'')}" placeholder="ex. tranche" autocomplete="off" maxlength="40"></div></div>`}
   ${f?`<div class="grid3" style="margin-top:16px"><button class="btn ghost" id="fx">Annuler</button><button class="btn warn" id="fdel">Supprimer</button><button class="btn" id="fs">Enregistrer</button></div>
       ${f.arch?`<button class="btn ghost wide" id="funarch" style="margin-top:8px">Désarchiver</button>`:''}`
@@ -535,7 +649,9 @@ function fiche(){
   const keep=()=>{fd.nom=$('#fn').value;const p=$('#fpn');if(p)fd.portionNom=p.value};
   app.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{keep();fd.isPrep=b.dataset.p==='1';fiche()});
   const pad=(id,title,key,unit,positive)=>{const b=$('#'+id);if(b)b.onclick=()=>{keep();numpad({title,value:fd[key],unit,positive,okLabel:'OK',done:v=>{fd[key]=v;fiche()}})}};
-  pad('fk','Calories pour 100 g','kcal','kcal',false);pad('fp','Protéines pour 100 g','prot','g',false);pad('fpo','Poids d\'une portion','portion','g');
+  pad('fk','Calories pour 100 g','kcal','kcal',false);pad('fpo','Poids d\'une portion','portion','g');
+  TR().forEach(k=>{const b=$('#fn_'+k);if(b)b.onclick=()=>{keep();numpad({title:NUTS[k].label+' pour 100 g',sub:'Laissez vide si la valeur n\'est pas sur l\'emballage.',value:k==='prot'?fd.prot:fd.n[k],unit:NUTS[k].unit,positive:false,allowEmpty:true,okLabel:'OK',
+    done:v=>{if(k==='prot')fd.prot=v;else fd.n[k]=v;fiche()}})}});
   pad('fpf','Poids final de la préparation','poids','g');pad('fnp','Nombre de parts','parts','parts');
   const ai=$('#addIng');if(ai)ai.onclick=()=>{keep();ingredientPicker(f?f.id:null)};
   app.querySelectorAll('[data-rr]').forEach(b=>b.onclick=()=>{keep();fd.rec.splice(+b.dataset.rr,1);fiche()});
@@ -552,11 +668,15 @@ function fiche(){
       const t=recSum(),poids=fd.poids||t.g;
       if(!(poids>0)){toast('Indiquez le poids final.');return}
       const portion=fd.parts?Math.round(poids/fd.parts*10)/10:null;
-      data={nom,cat:fd.cat||null,kcal:Math.round(t.k/poids*1000)/10,prot:Math.round(t.p/poids*1000)/10,portion,portionNom:portion?(fd.portionNom.trim()||'part'):null,
+      const per100=v=>v==null?null:Math.round(v/poids*1000)/10,n={};
+      NKEYS.filter(k=>k!=='prot').forEach(k=>{const v=per100(recN(k));if(v!=null)n[k]=v});
+      data={nom,cat:fd.cat||null,kcal:Math.round(t.k/poids*1000)/10,prot:per100(recN('prot')),n,portion,portionNom:portion?(fd.portionNom.trim()||'part'):null,
         recette:{items:fd.rec.map(l=>({...l})),poids:fd.poids||null,n:fd.parts||null}};
     }else{
-      if(fd.kcal==null||fd.prot==null){toast('Indiquez les calories et les protéines.');return}
-      data={nom,cat:fd.cat||null,kcal:fd.kcal,prot:fd.prot,portion:fd.portion||null,portionNom:fd.portion?(fd.portionNom.trim()||null):null};
+      if(fd.kcal==null){toast('Indiquez les calories.');return}
+      /* un nutriment non coché garde sa valeur ; une valeur absente reste « non renseignée » */
+      const n={};Object.entries(fd.n).forEach(([k,v])=>{if(v!=null)n[k]=v});
+      data={nom,cat:fd.cat||null,kcal:fd.kcal,prot:fd.prot,n,portion:fd.portion||null,portionNom:fd.portion?(fd.portionNom.trim()||null):null};
     }
     const doSave=()=>{
       let id;
@@ -566,7 +686,7 @@ function fiche(){
       else navBack(()=>toast(f?'Fiche enregistrée.':'« '+nom+' » ajouté'+(data.cat?' dans « '+data.cat+' »':'')+'.'));
     };
     const n=f?usedMeals(f.id):0;
-    if(n&&(data.kcal!==f.kcal||data.prot!==f.prot))ask('Modifier « '+esc(f.nom)+' » ?',usedMsg(n),[{label:'Enregistrer',fn:doSave},{label:'Annuler',cls:'ghost'}]);
+    if(n&&(data.kcal!==f.kcal||data.prot!==f.prot||JSON.stringify(data.n)!==JSON.stringify(f.n||{})))ask('Modifier « '+esc(f.nom)+' » ?',usedMsg(n),[{label:'Enregistrer',fn:doSave},{label:'Annuler',cls:'ghost'}]);
     else doSave();
   };
   const un=$('#funarch');if(un)un.onclick=()=>{f.arch=false;save();navBack(()=>toast('« '+f.nom+' » est de nouveau proposé.'))};
@@ -591,7 +711,7 @@ function ingredientPicker(selfId){
   };
   const fill=()=>{const el=sh.querySelector('#ipres');el.innerHTML=renderList(sel,sel.search?sel.q:'');
     el.querySelectorAll('[data-f]').forEach(r=>r.onclick=()=>{const f=food(r.dataset.f);bg.remove();
-      qtyPad(f,null,g=>{const ex=fd.rec.find(l=>l.foodId===f.id);if(ex)ex.g+=g;else fd.rec.push({foodId:f.id,nom:f.nom,kcal:f.kcal,prot:f.prot,g});fiche();toast(f.nom+' ajouté à la recette.')},{noEdit:true,okLabel:'Ajouter à la recette'})})};
+      qtyPad(f,null,g=>{const ex=fd.rec.find(l=>l.foodId===f.id);if(ex)ex.g+=g;else fd.rec.push({...ingCopy(f),g});fiche();toast(f.nom+' ajouté à la recette.')},{noEdit:true,okLabel:'Ajouter à la recette'})})};
   draw();
 }
 /* catégories : choisir (toucher = choisir) ; le crayon du haut passe en mode édition */
@@ -656,25 +776,41 @@ function repas(){
   $('#types').onclick=()=>go('types');
   if(mode==='jour')dayBody();else weekBody();
 }
+/* jauges : calories puis nutriments suivis, deux par rangée ; « * » = un aliment n'a pas la valeur */
+function gaugesHtml(items){
+  const G=S.goals,t=sum(items);let miss=false;
+  const h=TR().map(k=>{const s=sumN(items,k),g=G[k];if(s.miss)miss=true;
+    return `<div><div><span class="big" style="color:var(--${k})">${nv(k,s.v)}${s.miss?'*':''}</span> <span class="unit">${g==null?NUTS[k].unit+' '+NUTS[k].label.toLowerCase():goalTxt(k)}</span></div>${g==null?'':meter(s.v,g,'var(--'+k+')','var(--'+k+'-soft)')}</div>`}).join('');
+  return `<div class="gauges"><div><div><span class="big" style="color:var(--kcal)">${nf(t.k)}</span> <span class="unit">/ ${nf(G.kcal)} kcal</span></div>${meter(t.k,G.kcal,'var(--kcal)','var(--kcal-soft)')}</div>${h}</div>`+
+    (miss?`<p class="muted" style="margin:-4px 0 10px">* incomplet : un aliment n'a pas encore cette valeur (Mes aliments › À compléter).</p>`:'');
+}
+const evtHtml=e=>`<div class="evt"><div class="t"><b>${fmtT(e.time)} · ${EVT[e.kind]}</b>${e.text?' : '+esc(e.text):''}</div><button class="ico" data-ee="${e.id}" aria-label="Modifier">${ic.pen}</button><button class="ico del" data-de="${e.id}" aria-label="Supprimer">${ic.del}</button></div>`;
 function dayBody(){
-  const G=S.goals,ms=S.meals.filter(m=>m.date===viewDate).sort(mealSort),t=dayTot(viewDate),isToday=viewDate===todayIso();
-  $('#body').innerHTML=`<div class="gauges">
-    <div><div><span class="big" style="color:var(--kcal)">${nf(t.k)}</span> <span class="unit">/ ${nf(G.kcal)} kcal</span></div>${meter(t.k,G.kcal,'var(--kcal)','var(--kcal-soft)')}</div>
-    <div><div><span class="big" style="color:var(--prot)">${nf1(t.p)}</span> <span class="unit">/ ${nf(G.prot)} g protéines</span></div>${meter(t.p,G.prot,'var(--prot)','var(--prot-soft)')}</div></div>`+
-  (ms.length?ms.map(m=>{const s=sum(m.items);return `<div class="meal"><div class="meal-h"><div class="t">${fmtT(m.time)} <span>· ${nf(s.k)} kcal · ${nf1(s.p)} g prot.</span></div>
+  const ms=S.meals.filter(m=>m.date===viewDate),isToday=viewDate===todayIso();
+  const evs=S.notes.filter(e=>e.date===viewDate);
+  /* repas, notes, lever et coucher dans l'ordre de l'heure */
+  const all=[...ms.map(m=>({t:m.time,m})),...evs.map(e=>({t:e.time,e}))].sort((a,b)=>(a.t||'99').localeCompare(b.t||'99'));
+  $('#body').innerHTML=gaugesHtml(ms.flatMap(m=>m.items))+
+  (all.length?all.map(x=>{if(x.e)return evtHtml(x.e);const m=x.m,s=sum(m.items),nl=TR().map(k=>sumTxt(m.items,k)).join(' · ');return `<div class="meal"><div class="meal-h"><div class="t">${fmtT(m.time)} <span>· ${nf(s.k)} kcal${nl?' · '+nl:''}</span></div>
     <button class="ico" data-ed="${m.id}" aria-label="Modifier">${ic.pen}</button><button class="ico del" data-dl="${m.id}" aria-label="Supprimer">${ic.del}</button></div>
     ${m.items.map(l=>{const f=food(l.foodId);return `<div class="row"><div class="main" style="cursor:default">${esc(f?f.nom:'?')}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} kcal</div></div>`}).join('')}</div>`}).join('')
    :'<p class="muted">Aucun repas noté ce jour-là.</p>')+
-  (viewDate<=todayIso()?`<button class="btn ghost wide" id="addHere" style="margin-top:6px">+ Noter un repas ${isToday?'aujourd\'hui':'ce jour-là'}</button>`:'');
+  (viewDate<=todayIso()?`<button class="btn ghost wide" id="addHere" style="margin-top:6px">+ Noter un repas ${isToday?'aujourd\'hui':'ce jour-là'}</button>
+    <div class="chips" style="margin-top:10px;justify-content:center"><button data-ev="note">+ Note</button>${S.profile.sommeil?'<button data-ev="lever">+ Lever</button><button data-ev="coucher">+ Coucher</button>':''}</div>`:'');
   app.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{const m=S.meals.find(x=>x.id===b.dataset.ed);enterNoter(()=>({editId:m.id,date:m.date,time:m.time||'',items:m.items.map(l=>({...l}))}))});
   app.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{const m=S.meals.find(x=>x.id===b.dataset.dl);
     ask('Supprimer ce repas ?',(m.time?'Repas de '+fmtT(m.time):'Repas sans heure')+', '+longDate(m.date).toLowerCase()+'.',[{label:'Oui, supprimer',cls:'warn',fn:()=>{S.meals=S.meals.filter(x=>x!==m);save();repas()}},{label:'Non',cls:'ghost'}])});
   const ah=$('#addHere');if(ah)ah.onclick=()=>startNoter(viewDate);
+  app.querySelectorAll('#body [data-ev]').forEach(b=>b.onclick=()=>evtSheet(b.dataset.ev,viewDate,isToday?hm():'',repas,null));
+  app.querySelectorAll('[data-ee]').forEach(b=>b.onclick=()=>{const e=S.notes.find(x=>x.id===b.dataset.ee);evtSheet(e.kind,e.date,e.time,repas,e)});
+  app.querySelectorAll('[data-de]').forEach(b=>b.onclick=()=>{const e=S.notes.find(x=>x.id===b.dataset.de);
+    ask('Supprimer ?',EVT[e.kind]+' de '+fmtT(e.time)+', '+longDate(e.date).toLowerCase()+'.',[{label:'Oui, supprimer',cls:'warn',fn:()=>{S.notes=S.notes.filter(x=>x!==e);save();repas()}},{label:'Non',cls:'ghost'}])});
 }
 function weekBody(){
   const G=S.goals,s0=weekStart(viewDate),days=[...Array(7)].map((_,i)=>{const d=addDays(s0,i);return{d,t:dayTot(d)}});
   const filled=days.filter(x=>x.t.k>0);
-  const avg=filled.length?{k:filled.reduce((a,x)=>a+x.t.k,0)/filled.length,p:filled.reduce((a,x)=>a+x.t.p,0)/filled.length}:{k:0,p:0};
+  const avg={k:filled.length?filled.reduce((a,x)=>a+x.t.k,0)/filled.length:0};
+  const avgN=k=>{let v=0,miss=false;filled.forEach(x=>{const s=sumN(S.meals.filter(m=>m.date===x.d).flatMap(m=>m.items),k);v+=s.v;if(s.miss)miss=true});return {v:filled.length?v/filled.length:0,miss}};
   const W=400,H=230,tp=22,bot=34,left=40,right=6,ch=H-tp-bot;
   const max=Math.max(G.kcal,...days.map(x=>x.t.k),500)*1.1;
   const step=max>3000?1000:500,ticks=[];for(let v=0;v<=max;v+=step)ticks.push(v);
@@ -688,7 +824,7 @@ function weekBody(){
   g+=`<line x1="${left}" x2="${W-right}" y1="${y(G.kcal)}" y2="${y(G.kcal)}" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="7 6"/><text x="${W-right}" y="${y(G.kcal)-6}" text-anchor="end" font-size="12" fill="var(--accent)" font-weight="700">objectif</text></svg>`;
   $('#body').innerHTML=`<div class="gauges">
     <div><div class="big" style="color:var(--kcal)">${nf(avg.k)}</div><div class="unit">kcal en moyenne / jour</div></div>
-    <div><div class="big" style="color:var(--prot)">${nf1(avg.p)}</div><div class="unit">g de protéines en moyenne / jour</div></div></div>
+    ${TR().map(k=>{const a=avgN(k);return `<div><div class="big" style="color:var(--${k})">${nv(k,a.v)}${a.miss?'*':''}</div><div class="unit">${NUTS[k].unit} de ${NUTS[k].label.toLowerCase()} en moyenne / jour</div></div>`}).join('')}</div>
   <p class="muted" style="margin:0 0 6px">${filled.length?'Moyenne sur les '+filled.length+' jour'+(filled.length>1?'s':'')+' notés.':'Rien de noté cette semaine.'} Touchez un jour pour l'ouvrir.</p>
   <div class="list" style="padding:8px 4px">${g}</div>`;
   app.querySelectorAll('[data-day]').forEach(c=>c.onclick=()=>{viewDate=c.dataset.day;mode='jour';repas()});
@@ -699,7 +835,7 @@ function types(){
   const ms=[...S.models].sort(byName);
   app.innerHTML=top('Mes repas types')+`
    <p class="muted">Un repas type se crée depuis « Noter un repas » : composez le repas, puis « ☆ Garder comme repas type ». Il ne compte pas dans vos repas.</p>
-   <div class="list">${ms.length?ms.map(m=>`<div class="row"><div class="main" data-t="${m.id}"><div class="name">${esc(m.nom)}</div><div class="vals">${m.items.length} aliment${m.items.length>1?'s':''} · ${nf(sum(m.items).k)} kcal · ${nf1(sum(m.items).p)} g prot.</div></div></div>`).join(''):'<div class="row muted">Aucun repas type pour l\'instant.</div>'}</div>`;
+   <div class="list">${ms.length?ms.map(m=>`<div class="row"><div class="main" data-t="${m.id}"><div class="name">${esc(m.nom)}</div><div class="vals">${[m.items.length+' aliment'+(m.items.length>1?'s':''),nf(sum(m.items).k)+' kcal',...TR().map(k=>sumTxt(m.items,k))].join(' · ')}</div></div></div>`).join(''):'<div class="row muted">Aucun repas type pour l\'instant.</div>'}</div>`;
   bind();
   app.querySelectorAll('[data-t]').forEach(r=>r.onclick=()=>typeSheet(S.models.find(x=>x.id===r.dataset.t)));
 }
@@ -707,7 +843,7 @@ function typeSheet(m){
   const s=sum(m.items);
   const bg=overlay('',`<div class="sheet"><h3>Repas type</h3><label for="tn">Nom</label><input id="tn" value="${esc(m.nom)}" maxlength="40" autocomplete="off">
    <label>Contenu</label><div class="list">${m.items.map(l=>{const f=food(l.foodId);return `<div class="row"><div class="main" style="cursor:default">${esc(f?f.nom:'?')}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} kcal</div></div>`}).join('')}</div>
-   <div class="tot"><span class="k">${nf(s.k)} kcal</span><span class="p">${nf1(s.p)} g prot.</span></div>
+   <div class="tot"><span class="k">${nf(s.k)} kcal</span>${TR().map(k=>`<span style="color:var(--${k})">${sumTxt(m.items,k)}</span>`).join('')}</div>
    <p class="muted">Pour changer son contenu : notez un repas avec ce repas type, corrigez-le, puis gardez-le comme repas type sous le même nom.</p>
    <div class="grid3"><button class="btn ghost" id="tx">Annuler</button><button class="btn warn" id="td">Supprimer</button><button class="btn" id="ts">Enregistrer</button></div></div>`);
   bg.querySelector('#tx').onclick=()=>bg.remove();
@@ -728,29 +864,37 @@ function periodRange(){
   const ds=S.meals.map(m=>m.date).sort();return ds.length?[ds[0],ds[ds.length-1]>T?ds[ds.length-1]:T]:[T,T];
 }
 function analyseText(){
-  const [a,b]=periodRange(),G=S.goals,L=[],q=(store.get(KEY+'.question')||'').trim();
-  const ms=S.meals.filter(m=>m.date>=a&&m.date<=b);
-  L.push("Voici mon carnet alimentaire. Peux-tu me faire un bilan : équilibre général, excès, manques probables (sel, fibres, minéraux, vitamines…) et quelques conseils simples ?");
+  const [a,b]=periodRange(),G=S.goals,P=S.profile,L=[],q=(store.get(KEY+'.question')||'').trim(),tr=TR();
+  const ms=S.meals.filter(m=>m.date>=a&&m.date<=b),evs=S.notes.filter(e=>e.date>=a&&e.date<=b),ws=S.weights.filter(w=>w.date>=a&&w.date<=b).sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+  const nl=items=>tr.map(k=>{const s=sumN(items,k);return nv(k,s.v)+' '+NUTS[k].unit+' '+NUTS[k].label.toLowerCase()+(s.miss?' (incomplet)':'')});
+  L.push("Voici mon carnet alimentaire. Peux-tu me faire un bilan : équilibre général, excès, manques probables (sel, fibres, minéraux, vitamines…) et quelques conseils simples ? Les noms des aliments sont précis (marques comprises) : sers-t'en pour estimer ce que je n'ai pas noté.");
   if(q){L.push('');L.push('Ma situation et ma question : '+q)}
   L.push('');
+  const lw=lastWeight(),me=[P.sexe?(P.sexe==='H'?'homme':'femme'):'',P.an?ageOf(P)+' ans':'',P.taille?P.taille+' cm':'',lw?'poids '+nf1(lw.kg)+' kg':'',P.cible?'poids cible '+nf1(P.cible)+' kg':'',P.activite?'activité habituelle '+(ACT.find(x=>x[0]===P.activite)||[0,''])[1].toLowerCase():''].filter(Boolean);
+  if(me.length)L.push('Mon profil : '+me.join(', '));
   L.push(`Période : du ${fullDate(a)} au ${fullDate(b)}`);
-  L.push(`Mes objectifs quotidiens : ${nf(G.kcal)} kcal et ${nf(G.prot)} g de protéines`);
+  L.push(`Mes objectifs quotidiens : ${[nf(G.kcal)+' kcal'+(P.kcalPerso?'':' (calculé par l\'appli)'),...tr.filter(k=>G[k]!=null).map(k=>(NUTS[k].dir==='max'?'au plus ':'au moins ')+nv(k,G[k])+' '+NUTS[k].unit+' de '+NUTS[k].label.toLowerCase())].join(', ')}`);
   const used=[...new Set(ms.flatMap(m=>m.items.map(l=>l.foodId)))].map(food).filter(Boolean).sort(byName);
   L.push('');L.push('Aliments utilisés (valeurs que j\'ai saisies, pour 100 g) :');
-  used.forEach(f=>L.push(`- ${f.nom} : ${nf1(f.kcal)} kcal, ${nf1(f.prot)} g de protéines${f.portion?` (1 ${pnom(f)} = ${nf1(f.portion)} g)`:''}${f.recette?` ; préparation maison : ${f.recette.items.map(l=>l.nom+' '+nf1(l.g)+' g').join(', ')}${f.recette.poids?`, poids final ${nf1(f.recette.poids)} g`:''}${f.recette.n?`, ${nf1(f.recette.n)} parts`:''}`:''}`));
+  used.forEach(f=>L.push(`- ${f.nom} : ${[nf1(f.kcal)+' kcal',...tr.map(k=>{const v=nget(f,k);return v==null?NUTS[k].label.toLowerCase()+' : non renseigné':nv(k,v)+' '+NUTS[k].unit+' de '+NUTS[k].label.toLowerCase()})].join(', ')}${f.portion?` (1 ${pnom(f)} = ${nf1(f.portion)} g)`:''}${f.recette?` ; préparation maison : ${f.recette.items.map(l=>l.nom+' '+nf1(l.g)+' g').join(', ')}${f.recette.poids?`, poids final ${nf1(f.recette.poids)} g`:''}${f.recette.n?`, ${nf1(f.recette.n)} parts`:''}`:''}`));
   if(!used.length)L.push('- aucun');
-  let n=0,tk=0,tp=0;
+  let n=0,tk=0;
   for(let d=a;d<=b;d=addDays(d,1)){
-    const dm=ms.filter(m=>m.date===d).sort(mealSort);
+    const dm=ms.filter(m=>m.date===d),de=evs.filter(e=>e.date===d),dw=ws.filter(w=>w.date===d);
     L.push('');
-    if(!dm.length){L.push(`${fullDate(d)} : rien de noté`);continue}
-    const t=sum(dm.flatMap(m=>m.items));n++;tk+=t.k;tp+=t.p;
-    L.push(`${fullDate(d)} : ${nf(t.k)} kcal, ${nf1(t.p)} g de protéines`);
-    dm.forEach(m=>{const s=sum(m.items);
-      L.push(`  ${m.time?fmtT(m.time):'Heure non notée'} (${nf(s.k)} kcal, ${nf1(s.p)} g prot.) : `+m.items.map(l=>{const f=food(l.foodId);return (f?f.nom:'?')+' '+qty(f,l.g)}).join(' ; '))});
+    if(!dm.length&&!de.length&&!dw.length){L.push(`${fullDate(d)} : rien de noté`);continue}
+    const items=dm.flatMap(m=>m.items),t=sum(items);
+    if(dm.length){n++;tk+=t.k;L.push(`${fullDate(d)} : ${[nf(t.k)+' kcal',...nl(items)].join(', ')}`)}else L.push(`${fullDate(d)} : aucun repas noté`);
+    /* repas, notes, lever, coucher et pesées dans l'ordre de l'heure */
+    [...dm.map(m=>({t:m.time,m})),...de.map(e=>({t:e.time,e})),...dw.map(w=>({t:w.time,w}))].sort((x,y)=>(x.t||'99').localeCompare(y.t||'99')).forEach(x=>{
+      if(x.w){L.push(`  ${x.w.time?fmtT(x.w.time):'Heure non notée'} : pesée, ${nf1(x.w.kg)} kg`);return}
+      if(x.e){L.push(`  ${x.e.time?fmtT(x.e.time):'Heure non notée'} : ${x.e.kind==='note'?'note : '+x.e.text:EVT[x.e.kind].toLowerCase()}`);return}
+      const m=x.m,s=sum(m.items);
+      L.push(`  ${m.time?fmtT(m.time):'Heure non notée'} (${[nf(s.k)+' kcal',...nl(m.items)].join(', ')}) : `+m.items.map(l=>{const f=food(l.foodId);return (f?f.nom:'?')+' '+qty(f,l.g)}).join(' ; '))});
   }
   L.push('');
-  L.push(n?`Moyenne sur ${n} jour${n>1?'s':''} noté${n>1?'s':''} : ${nf(tk/n)} kcal et ${nf1(tp/n)} g de protéines par jour.`:'Aucun repas noté sur cette période.');
+  const avgs=tr.map(k=>{let v=0;for(let d=a;d<=b;d=addDays(d,1)){const it=ms.filter(m=>m.date===d).flatMap(m=>m.items);if(it.length)v+=sumN(it,k).v}return nv(k,n?v/n:0)+' '+NUTS[k].unit+' de '+NUTS[k].label.toLowerCase()});
+  L.push(n?`Moyenne sur ${n} jour${n>1?'s':''} noté${n>1?'s':''} : ${[nf(tk/n)+' kcal',...avgs].join(', ')} par jour.`:'Aucun repas noté sur cette période.');
   return L.join('\n');
 }
 function analyse(){
@@ -781,14 +925,14 @@ function analyse(){
 const guessDevice=()=>{const u=navigator.userAgent;return /Android/i.test(u)?'Android':/iPhone|iPad/i.test(u)?'iPhone/iPad':/Windows/i.test(u)?'Windows':/Mac/i.test(u)?'Mac':/Linux/i.test(u)?'Linux':'Appareil inconnu'};
 const deviceName=()=>store.get(KEY+'.device')||guessDevice();
 const stamp=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+x.getHours()+' h '+String(x.getMinutes()).padStart(2,'0')};
-function backupObj(){return {app:'nutrinote',version:3,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models}}
+function backupObj(){return {app:'nutrinote',version:4,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models,profile:S.profile,weights:S.weights,notes:S.notes}}
 let restored=null;
 function sauvegarde(){
   app.className='';
   app.innerHTML=top('Sauvegarde')+`
    ${restored?`<div class="okbox">${restored}</div>`:''}
    <div class="card"><h2 style="margin-top:0">Faire une sauvegarde</h2>
-    <p class="muted" style="margin-top:0">${S.foods.length} aliments, ${S.meals.length} repas, ${S.models.length} repas types.</p>
+    <p class="muted" style="margin-top:0">${S.foods.length} aliments, ${S.meals.length} repas, ${S.models.length} repas types, ${S.weights.length} pesées, ${S.notes.length} notes.</p>
     <button class="btn wide" id="fileB">Enregistrer dans un fichier</button>
     <p class="muted">Le fichier va dans vos téléchargements. Pour le garder ailleurs ou le passer sur un autre appareil : envoyez-le par Telegram (le trombone) ou par e-mail.</p>
     <label for="dev">Nom de cet appareil (repris dans la sauvegarde)</label><input id="dev" maxlength="30" value="${esc(store.get(KEY+'.device')||'')}" placeholder="ex. Pixel de Christian (${guessDevice()} par défaut)">
@@ -817,28 +961,134 @@ function sauvegarde(){
     if(!backupText.trim()){box.innerHTML='';return}
     if(!o){box.innerHTML='<p class="muted" style="color:var(--warn)">Ce fichier n\'est pas une sauvegarde du carnet.</p>';return}
     const ds=o.meals.map(m=>m.date).sort();
-    box.innerHTML=`<div class="note">Sauvegarde ${o.savedAt?'du <b>'+stamp(o.savedAt)+'</b>':'(date inconnue)'}${o.device?', depuis « <b>'+esc(o.device)+'</b> »':''} : ${o.foods.length} aliments, ${o.meals.length} repas${Array.isArray(o.models)&&o.models.length?', '+o.models.length+' repas types':''}${ds.length?' (repas du '+longDate(ds[0]).toLowerCase()+' au '+longDate(ds[ds.length-1]).toLowerCase()+')':''}.</div>
+    box.innerHTML=`<div class="note">Sauvegarde ${o.savedAt?'du <b>'+stamp(o.savedAt)+'</b>':'(date inconnue)'}${o.device?', depuis « <b>'+esc(o.device)+'</b> »':''} : ${o.foods.length} aliments, ${o.meals.length} repas${Array.isArray(o.models)&&o.models.length?', '+o.models.length+' repas types':''}${Array.isArray(o.weights)&&o.weights.length?', '+o.weights.length+' pesées':''}${Array.isArray(o.notes)&&o.notes.length?', '+o.notes.length+' notes':''}${ds.length?' (repas du '+longDate(ds[0]).toLowerCase()+' au '+longDate(ds[ds.length-1]).toLowerCase()+')':''}.</div>
       <button class="btn warn wide" id="impB">Restaurer cette sauvegarde</button>`;
     $('#impB').onclick=()=>ask('Restaurer cette sauvegarde ?',`Elle <b>remplacera</b> les données de cet appareil : ${S.foods.length} aliments et ${S.meals.length} repas.`,[
       {label:'Oui, restaurer',cls:'warn',fn:()=>{
-        S={foods:o.foods,meals:o.meals,goals:o.goals||S.goals,cats:Array.isArray(o.cats)?o.cats:[...DEFAULT_CATS],models:Array.isArray(o.models)?o.models:[],base:1};
+        /* une sauvegarde d'avant le 25/10/2026 n'a ni profil, ni poids, ni notes : on garde alors ceux de cet appareil */
+        S={foods:o.foods,meals:o.meals,goals:o.goals||S.goals,cats:Array.isArray(o.cats)?o.cats:[...DEFAULT_CATS],models:Array.isArray(o.models)?o.models:[],base:1,
+          profile:o.profile||S.profile,weights:Array.isArray(o.weights)?o.weights:S.weights,notes:Array.isArray(o.notes)?o.notes:S.notes};
         migrate();save();draft=null;clearDraft();
-        restored=`Sauvegarde restaurée : ${S.foods.length} aliments, ${S.meals.length} repas${S.models.length?', '+S.models.length+' repas types':''}.`;sauvegarde()}},
+        restored=`Sauvegarde restaurée : ${S.foods.length} aliments, ${S.meals.length} repas${S.models.length?', '+S.models.length+' repas types':''}${S.weights.length?', '+S.weights.length+' pesées':''}${S.notes.length?', '+S.notes.length+' notes':''}.`;sauvegarde()}},
       {label:'Non',cls:'ghost'}]);
   };
 }
 
-/* ================= PROFIL (provisoire : les objectifs) ================= */
+/* ================= PROFIL : moi, objectif de calories, suivis en plus, poids ================= */
+const ACT=[[1.2,'Sédentaire','assis la plupart du temps'],[1.375,'Légère','marche, tâches du quotidien'],[1.55,'Modérée','sport 3 à 5 fois par semaine'],[1.725,'Très active','sport intense ou métier physique']];
+const LVL={leger:[250,'Léger'],normal:[500,'Normal'],strict:[750,'Strict']};
+const NREP={prot:'Repère : 1 g par kilo de poids cible (1,2 g après 65 ans).',sel:'Repère de l\'OMS : moins de 5 g par jour.',
+  sucres:'Repère : moins de 50 g par jour (l\'OMS conseille de limiter les sucres ajoutés à 10 % des calories).',fibres:'Repère : environ 30 g par jour.',
+  gluc:'Pas de valeur proposée : à fixer avec votre médecin ou votre diététicien.',pot:'Pas de valeur proposée : à fixer avec votre médecin.'};
+const ageOf=p=>p.an?new Date().getFullYear()-p.an:null;
+/* Mifflin-St Jeor × activité ; perte : déficit au choix, jamais sous le repos ni sous un plancher (1 200 kcal femme, 1 500 kcal homme) */
+function calcKcal(){
+  const p=S.profile,w=lastWeight();if(!p.sexe||!p.an||!p.taille||!w||!p.activite)return null;
+  const age=ageOf(p),bmr=10*w.kg+6.25*p.taille-5*age+(p.sexe==='H'?5:-161),tdee=bmr*p.activite,floor=Math.max(bmr,p.sexe==='H'?1500:1200);
+  const r10=v=>Math.round(v/10)*10,lose=p.cible&&p.cible<w.kg,gain=p.cible&&p.cible>w.kg,levels={};
+  if(lose)Object.entries(LVL).forEach(([k,[d]])=>{const raw=tdee-d,kc=r10(Math.max(raw,floor)),def=tdee-kc;
+    levels[k]={kcal:kc,raised:raw<floor,perWeek:def*7/7700,weeks:def>0?(w.kg-p.cible)*7700/(def*7):null}});
+  return {bmr,tdee,floor:r10(floor),age,w,lose,gain,levels,kcal:lose?levels[p.niveau].kcal:r10(tdee)};
+}
+function applyCalc(){if(S.profile.kcalPerso)return;const c=calcKcal();if(c)S.goals.kcal=c.kcal}
+function addWeight(after){
+  const w=lastWeight();
+  numpad({title:'Mon poids',sub:'De préférence le matin, à jeun.',value:w?w.kg:null,unit:'kg',okLabel:'Enregistrer',done:v=>{
+    S.weights.push({id:uid(),date:todayIso(),time:hm(),kg:v});applyCalc();save();toast('Poids noté : '+nf1(v)+' kg.');after&&after()}});
+}
+function weightChart(){
+  const ws=[...S.weights].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));if(ws.length<2)return '';
+  const W=400,H=170,tp=14,bot=26,left=40,right=8,ch=H-tp-bot,cib=S.profile.cible;
+  const vals=ws.map(w=>w.kg).concat(cib?[cib]:[]),mn=Math.floor(Math.min(...vals)-1),mx=Math.ceil(Math.max(...vals)+1);
+  const t0=parse(ws[0].date).getTime(),t1=Math.max(parse(ws[ws.length-1].date).getTime(),t0+864e5);
+  const x=d=>left+(parse(d).getTime()-t0)/(t1-t0)*(W-left-right),y=v=>tp+ch-(v-mn)/(mx-mn)*ch;
+  let g=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Courbe du poids">`;
+  [mn,(mn+mx)/2,mx].forEach(v=>{g+=`<line x1="${left}" x2="${W-right}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="${left-6}" y="${y(v)+4}" text-anchor="end" font-size="12" fill="var(--muted)">${nf1(v)}</text>`});
+  if(cib)g+=`<line x1="${left}" x2="${W-right}" y1="${y(cib)}" y2="${y(cib)}" stroke="var(--accent)" stroke-width="2" stroke-dasharray="7 6"/><text x="${W-right}" y="${y(cib)-5}" text-anchor="end" font-size="12" fill="var(--accent)" font-weight="700">cible</text>`;
+  /* tendance : moyenne des 3 dernières pesées */
+  const tr=ws.map((w,i)=>{const s=ws.slice(Math.max(0,i-2),i+1);return [x(w.date),y(s.reduce((a,z)=>a+z.kg,0)/s.length)]});
+  g+=`<polyline points="${tr.map(p=>p.join(',')).join(' ')}" fill="none" stroke="var(--kcal)" stroke-width="2.5"/>`;
+  ws.forEach(w=>{g+=`<circle cx="${x(w.date)}" cy="${y(w.kg)}" r="3.5" fill="var(--muted)"/>`});
+  const d0=parse(ws[0].date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'}),d1=parse(ws[ws.length-1].date).toLocaleDateString('fr-FR',{day:'numeric',month:'short'});
+  g+=`<text x="${left}" y="${H-6}" font-size="12" fill="var(--muted)">${d0}</text><text x="${W-right}" y="${H-6}" text-anchor="end" font-size="12" fill="var(--muted)">${d1}</text></svg>`;
+  return `<div class="list" style="padding:8px 4px;margin-top:8px">${g}</div><p class="muted" style="margin:4px 0 0">Points gris : vos pesées. Ligne orange : la tendance (moyenne des 3 dernières).</p>`;
+}
 function profil(){
   app.className='';
-  const nfield=(id,v,unit)=>`<button class="field" id="${id}">${nf(v)} ${unit}<span class="chev">123</span></button>`;
+  const p=S.profile,w=lastWeight(),c=calcKcal(),tr=TR(),sy=window.scrollY;
+  const nfield=(id,v,txt,ph)=>`<button class="field ${v==null?'empty':''}" id="${id}">${v==null?ph:txt}<span class="chev">123</span></button>`;
+  const until=wk=>{if(!wk)return '';const d=new Date();d.setDate(d.getDate()+Math.round(wk*7));return d.toLocaleDateString('fr-FR',{month:'long',year:'numeric'})};
+  let calc='';
+  if(!c)calc=`<p class="muted" style="margin-top:0">Indiquez votre sexe, votre année de naissance, votre taille, votre poids et votre activité : NutriNote vous proposera un apport de calories par jour.</p>`;
+  else{
+    const L=c.lose?c.levels[p.niveau]:null;
+    if(c.lose)calc+=`<p class="muted" style="margin:0">Choisissez votre rythme :</p><div class="lvl">${Object.entries(LVL).map(([k,[d,l]])=>{const x=c.levels[k];
+      return `<button data-lv="${k}" aria-pressed="${p.niveau===k}">${l}${k==='normal'?' (conseillé)':''}<b>${nf(x.kcal)} kcal</b>≈ ${nf1(x.perWeek)} kg / sem.${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>limité au seuil</i>':''}</button>`}).join('')}</div>`;
+    calc+=`<div class="note">Votre corps dépense au repos environ <b>${nf(c.bmr)} kcal</b> par jour (formule de Mifflin-St Jeor) ; avec votre activité, environ <b>${nf(c.tdee)} kcal</b>.
+      ${c.lose?`Pour perdre environ ${nf1(L.perWeek)} kg par semaine, NutriNote propose <b>${nf(L.kcal)} kcal</b> par jour${L.weeks?', soit votre poids cible vers '+until(L.weeks):''}.${L.raised?' Ce rythme a été ralenti pour ne pas descendre sous le seuil.':''}`
+        :c.gain?`Pour prendre du poids, demandez conseil à votre médecin. NutriNote propose de garder <b>${nf(c.kcal)} kcal</b> par jour.`
+        :`Pour garder votre poids : <b>${nf(c.kcal)} kcal</b> par jour.`}
+      Ne descendez pas en dessous de <b>${nf(c.floor)} kcal</b> par jour sans avis médical.</div>`;
+    if(p.cible&&p.taille&&p.cible/Math.pow(p.taille/100,2)<18.5)calc+=`<div class="banner">Ce poids cible est très bas pour votre taille. Parlez-en à votre médecin avant de vous le fixer.</div>`;
+  }
+  const kcalCard=`<div class="card"><h2 style="margin-top:0">Mon objectif de calories</h2>${calc}
+    <div class="subrow" style="margin-top:8px"><div><span class="big" style="color:var(--kcal)">${nf(S.goals.kcal)}</span> <span class="unit">kcal par jour${p.kcalPerso?' · choisi par vous':''}</span></div></div>
+    ${p.kcalPerso&&c&&c.kcal!==S.goals.kcal?`<button class="btn ghost wide" id="useCalc" style="margin-top:8px">Reprendre le calcul (${nf(c.kcal)} kcal)</button>`:''}
+    <button class="btn ghost wide" id="ownK" style="margin-top:8px">Choisir moi-même mon objectif</button>
+    <p class="muted" style="margin-bottom:0">En cas de traitement ou de maladie, demandez l'avis de votre médecin.</p></div>`;
+  const nutRow=k=>{const on=tr.includes(k),g=S.goals[k];
+    return `<label class="chk"><input type="checkbox" data-nut="${k}" ${on?'checked':''}><span>${NUTS[k].label}<span class="sub">${on?NREP[k]:NUTS[k].dir==='max'?'à ne pas dépasser':'à atteindre'}</span></span></label>
+      ${on?`<div style="padding:0 10px 10px"><button class="field ${g==null?'empty':''}" data-goal="${k}">${g==null?'Objectif à fixer':(NUTS[k].dir==='max'?'Au plus ':'Au moins ')+nv(k,g)+' '+NUTS[k].unit+' par jour'}<span class="chev">123</span></button></div>`:''}`};
+  const todo=missingFoods().length;
   app.innerHTML=top('Profil')+`
-   <h2>Mes objectifs quotidiens</h2>
-   <div class="grid2"><div><label>Calories</label>${nfield('gk',S.goals.kcal,'kcal')}</div><div><label>Protéines</label>${nfield('gp',S.goals.prot,'g')}</div></div>
-   <p class="muted">Bientôt ici : sexe, âge, taille, poids et activité, pour calculer ces objectifs, ainsi que les pesées.</p>`;
-  bind();
-  $('#gk').onclick=()=>numpad({title:'Objectif de calories par jour',value:S.goals.kcal,unit:'kcal',okLabel:'OK',done:v=>{S.goals.kcal=v;save();profil()}});
-  $('#gp').onclick=()=>numpad({title:'Objectif de protéines par jour',value:S.goals.prot,unit:'g',okLabel:'OK',done:v=>{S.goals.prot=v;save();profil()}});
+   <div class="card"><h2 style="margin-top:0">Moi</h2>
+    <div class="seg" style="margin:0"><button data-sx="H" aria-pressed="${p.sexe==='H'}">Homme</button><button data-sx="F" aria-pressed="${p.sexe==='F'}">Femme</button></div>
+    <div class="grid2"><div><label>Année de naissance</label>${nfield('pan',p.an,p.an+(ageOf(p)?' ('+ageOf(p)+' ans)':''),'à remplir')}</div><div><label>Taille</label>${nfield('pta',p.taille,nf(p.taille)+' cm','à remplir')}</div></div>
+    <div class="grid2"><div><label>Poids actuel</label>${nfield('pw',w?w.kg:null,w?nf1(w.kg)+' kg':'','à remplir')}</div><div><label>Poids cible (facultatif)</label>${nfield('pci',p.cible,nf1(p.cible)+' kg','aucun')}</div></div>
+    ${p.cible?'<button class="btn ghost small" id="noCible" style="margin-top:8px">Retirer le poids cible</button>':''}
+    <label for="pact">Activité habituelle</label><select id="pact"><option value="">Choisissez…</option>${ACT.map(([v,l,d])=>`<option value="${v}" ${p.activite===v?'selected':''}>${l} (${d})</option>`).join('')}</select>
+    <p class="muted" style="margin-bottom:0">Une sortie exceptionnelle (2 h de vélo) se note plutôt dans une note, avec vos repas.</p></div>
+   ${kcalCard}
+   <div class="card"><h2 style="margin-top:0">Suivre aussi</h2>
+    <p class="muted" style="margin-top:0">Les calories sont toujours suivies. Cochez ${MAXNUTS} nutriments au plus : seuls ceux-là apparaîtront dans vos fiches, vos repas et vos jauges.</p>
+    <div class="list">${NKEYS.map(nutRow).join('')}</div>
+    ${todo?`<button class="btn ghost wide" id="todo" style="margin-top:8px">Compléter mes aliments (${todo})</button>`:''}</div>
+   <div class="card"><label class="chk" style="padding:0 0 6px"><input type="checkbox" id="slp" ${p.sommeil?'checked':''}><span><b>Mon sommeil</b><span class="sub">Le manque de sommeil augmente l'appétit. Cochez cette case pour noter l'heure de votre lever et de votre coucher avec vos repas : une IA pourra faire le lien avec ce que vous mangez.</span></span></label></div>
+   <div class="card"><h2 style="margin-top:0">Mon poids</h2>
+    ${w?`<p style="margin:0">Dernière pesée : <b>${nf1(w.kg)} kg</b>, ${longDate(w.date).toLowerCase()}.</p>`:'<p class="muted" style="margin:0">Aucune pesée pour l\'instant.</p>'}
+    <button class="btn wide" id="addW" style="margin-top:10px">+ Noter mon poids</button>
+    <p class="muted">De préférence le matin, à jeun. Un rappel s'affiche sur l'accueil une semaine après votre dernière pesée.</p>
+    ${weightChart()}
+    ${S.weights.length?`<div class="list" style="margin-top:8px">${[...S.weights].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,10).map(x=>`<div class="row"><div class="main" style="cursor:default">${nf1(x.kg)} kg <span class="muted">· ${longDate(x.date).toLowerCase()}${x.time?' à '+fmtT(x.time):''}</span></div><button class="ico del" data-dw="${x.id}" aria-label="Supprimer">${ic.del}</button></div>`).join('')}</div>`:''}</div>`;
+  bind();window.scrollTo(0,sy);
+  const set=(k,v)=>{p[k]=v;applyCalc();save();profil()};
+  app.querySelectorAll('[data-sx]').forEach(b=>b.onclick=()=>set('sexe',b.dataset.sx));
+  $('#pan').onclick=()=>numpad({title:'Année de naissance',value:p.an,unit:'',okLabel:'OK',done:v=>{v=Math.round(v);if(v<1900||v>new Date().getFullYear()-10){toast('Année non valable.');return}set('an',v)}});
+  $('#pta').onclick=()=>numpad({title:'Taille',value:p.taille,unit:'cm',okLabel:'OK',done:v=>{if(v<100||v>250){toast('Taille en centimètres, par exemple 174.');return}set('taille',Math.round(v))}});
+  $('#pw').onclick=()=>addWeight(profil);
+  $('#pci').onclick=()=>numpad({title:'Poids cible',sub:'Facultatif : seulement si vous voulez changer de poids.',value:p.cible,unit:'kg',okLabel:'OK',done:v=>{if(v<30||v>300){toast('Poids non valable.');return}set('cible',v)}});
+  const nc=$('#noCible');if(nc)nc.onclick=()=>set('cible',null);
+  $('#pact').onchange=e=>set('activite',e.target.value?+e.target.value:null);
+  app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>set('niveau',b.dataset.lv));
+  const uc=$('#useCalc');if(uc)uc.onclick=()=>{p.kcalPerso=false;applyCalc();save();profil();toast('Objectif calculé repris.')};
+  $('#ownK').onclick=()=>numpad({title:'Mon objectif de calories par jour',value:S.goals.kcal,unit:'kcal',okLabel:'OK',done:v=>{
+    S.goals.kcal=Math.round(v);p.kcalPerso=true;save();profil();if(c&&v<c.floor)toast('Attention : en dessous de '+nf(c.floor)+' kcal, demandez l\'avis de votre médecin.')}});
+  app.querySelectorAll('[data-nut]').forEach(x=>x.onchange=()=>{const k=x.dataset.nut;
+    if(x.checked){if(p.nuts.length>=MAXNUTS){x.checked=false;toast(MAXNUTS+' nutriments au plus : décochez-en un d\'abord.');return}
+      p.nuts.push(k);
+      if(S.goals[k]==null){const base=p.cible||(w&&w.kg),a=ageOf(p);
+        S.goals[k]=k==='prot'?(base?Math.round(base*(a&&a>=65?1.2:1)):null):k==='sel'?5:k==='sucres'?50:k==='fibres'?30:null}
+      save();profil();const n=S.foods.filter(f=>!f.arch&&nget(f,k)==null).length;
+      if(n)toast(n+' aliment'+(n>1?'s n\'ont':' n\'a')+' pas encore cette valeur : voir « Compléter mes aliments ».');
+    }else{p.nuts=p.nuts.filter(z=>z!==k);save();profil()}});
+  app.querySelectorAll('[data-goal]').forEach(b=>b.onclick=()=>{const k=b.dataset.goal;
+    numpad({title:NUTS[k].label+' : '+(NUTS[k].dir==='max'?'au plus':'au moins')+' par jour',sub:NREP[k]+' Tapez 0 pour ne pas fixer d\'objectif.',value:S.goals[k],unit:NUTS[k].unit,positive:false,okLabel:'OK',
+      done:v=>{S.goals[k]=v>0?v:null;save();profil()}})});
+  const td=$('#todo');if(td)td.onclick=()=>{alimSel={ctx:'aliments',v:'todo',search:false,q:''};go('aliments')};
+  $('#slp').onchange=e=>{p.sommeil=e.target.checked;save();profil()};
+  $('#addW').onclick=()=>addWeight(profil);
+  app.querySelectorAll('[data-dw]').forEach(b=>b.onclick=()=>{const x=S.weights.find(z=>z.id===b.dataset.dw);
+    ask('Supprimer cette pesée ?',nf1(x.kg)+' kg, '+longDate(x.date).toLowerCase()+'.',[{label:'Oui, supprimer',cls:'warn',fn:()=>{S.weights=S.weights.filter(z=>z!==x);applyCalc();save();profil()}},{label:'Non',cls:'ghost'}])});
 }
 
 /* ================= AIDE ================= */
@@ -850,6 +1100,9 @@ function aide(){
    <li><b>Repas types</b> : un repas que vous mangez souvent se garde avec « ☆ Garder comme repas type », puis se retrouve dans « Repas types ».</li>
    <li><b>Mes aliments</b> : créer un aliment ou une préparation (recette maison), corriger une fiche, archiver un aliment que vous n'utilisez plus.</li>
    <li><b>Mes repas</b> : le résultat du jour ou de la semaine. Le crayon rouvre un repas pour le corriger. Touchez la date pour ouvrir le calendrier.</li>
+   <li><b>Reprendre un repas noté</b> (dans la liste des catégories de Noter) : choisissez un repas d'un autre jour, ses aliments s'ajoutent au repas en cours. Pratique pour des restes.</li>
+   <li><b>+ Note</b> (dans Noter ou Mes repas) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). Avec la case Sommeil du profil : <b>+ Lever</b> et <b>+ Coucher</b>.</li>
+   <li><b>Profil</b> : vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, et votre poids (de préférence le matin, à jeun).</li>
    <li><b>Analyse</b> : copiez votre carnet pour l'IA de votre choix, avec votre question.</li>
    <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li></ul></div>`;
   bind();
