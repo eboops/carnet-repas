@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2F6B4F">
-<meta name="description" content="Carnet diététique simple, sans compte : calories et protéines, export pour une analyse par une IA.">
-<title>Carnet diététique</title>
+<meta name="description" content="NutriNote, carnet alimentaire simple, sans compte : calories et protéines, export pour une analyse par une IA.">
+<title>NutriNote</title>
 <style>
 :root{
   --bg:#F3F5F1; --surface:#FFFFFF; --ink:#1E2A22; --muted:#66726A; --line:#DDE3DC;
@@ -395,7 +395,7 @@ function wirePick(root,sel,redraw,refill,onSearchFocus){
 /* ================= ACCUEIL ================= */
 function home(){
   app.className='';
-  app.innerHTML=`<div class="cover"><div class="logo">${ic.fork}</div><div class="title">Carnet diététique</div>
+  app.innerHTML=`<div class="cover"><div class="logo">${ic.fork}</div><div class="title">NutriNote</div>
     <p class="slogan l1">Noter votre alimentation</p><p class="slogan">Export intégré pour analyse par une IA</p></div>
   <div class="bigs">
     <button class="main" id="bNoter">${ic.fork}Noter un repas</button>
@@ -781,7 +781,7 @@ function analyse(){
 const guessDevice=()=>{const u=navigator.userAgent;return /Android/i.test(u)?'Android':/iPhone|iPad/i.test(u)?'iPhone/iPad':/Windows/i.test(u)?'Windows':/Mac/i.test(u)?'Mac':/Linux/i.test(u)?'Linux':'Appareil inconnu'};
 const deviceName=()=>store.get(KEY+'.device')||guessDevice();
 const stamp=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString('fr-FR',{day:'numeric',month:'long',year:'numeric'})+' à '+x.getHours()+' h '+String(x.getMinutes()).padStart(2,'0')};
-function backupObj(){return {app:'carnet-repas',version:3,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models}}
+function backupObj(){return {app:'nutrinote',version:3,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models}}
 let restored=null;
 function sauvegarde(){
   app.className='';
@@ -801,7 +801,7 @@ function sauvegarde(){
   bind();restored=null;
   $('#dev').oninput=e=>store.set(KEY+'.device',e.target.value.trim());
   $('#fileB').onclick=()=>{
-    const o=backupObj(),name=`carnet-repas-${todayIso()}-${o.device.replace(/[^\w\-]+/g,'_')}.json`;
+    const o=backupObj(),name=`nutrinote-${todayIso()}-${o.device.replace(/[^\w\-]+/g,'_')}.json`;
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:'application/json'}));a.download=name;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
     $('#bout').innerHTML=`<div class="okbox">Fichier ${esc(name)} enregistré.</div>`;
