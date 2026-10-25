@@ -255,8 +255,8 @@ const NUTS={
   fibres:{label:'Fibres',short:'fibres',unit:'g',dir:'min'},
   pot:{label:'Potassium',short:'potass.',unit:'mg',dir:'max'}};
 const NKEYS=Object.keys(NUTS),MAXNUTS=3;
-function seed(){return {foods:baseFoods(),meals:[],goals:{kcal:2000,prot:70},cats:[...DEFAULT_CATS],models:[],base:1,
-  profile:{nuts:['prot'],sommeil:false,kcalPerso:false,niveau:'normal'},weights:[],notes:[]}}
+function seed(){return {foods:baseFoods(),meals:[],goals:{kcal:null,prot:70},cats:[...DEFAULT_CATS],models:[],base:1,
+  profile:{nuts:['prot'],sommeil:false,niveau:'normal'},weights:[],notes:[]}}
 let S;
 try{S=JSON.parse(store.get(KEY))}catch(e){S=null}
 if(!S||!Array.isArray(S.foods))S=seed();
@@ -264,9 +264,10 @@ function migrate(){
   if(!Array.isArray(S.meals))S.meals=[];
   if(!Array.isArray(S.cats))S.cats=[...DEFAULT_CATS];
   if(!Array.isArray(S.models))S.models=[];
-  if(!S.goals)S.goals={kcal:2000,prot:70};
-  /* ajouts du 25/10/2026 : un carnet existant garde ses objectifs saisis à la main et le suivi des protéines */
-  if(!S.profile)S.profile={nuts:['prot'],sommeil:false,kcalPerso:true,niveau:'normal'};
+  if(!S.goals)S.goals={kcal:null,prot:70};
+  /* ajouts du 25/10/2026 : un carnet existant garde le suivi des protéines ; son objectif de calories vient du profil (render) */
+  if(!S.profile)S.profile={nuts:['prot'],sommeil:false,niveau:'normal'};
+  delete S.profile.kcalPerso;
   if(!Array.isArray(S.profile.nuts))S.profile.nuts=['prot'];
   S.profile.nuts=S.profile.nuts.filter(k=>NUTS[k]);
   if(!S.profile.niveau)S.profile.niveau='normal';
@@ -783,7 +784,8 @@ function gaugesHtml(items){
   const G=S.goals,t=sum(items);let miss=false;
   const h=TR().map(k=>{const s=sumN(items,k),g=G[k];if(s.miss)miss=true;
     return `<div><div><span class="big" style="color:var(--${k})">${nv(k,s.v)}${s.miss?'*':''}</span> <span class="unit">${g==null?NUTS[k].unit+' '+NUTS[k].label.toLowerCase():goalTxt(k)}</span></div>${g==null?'':meter(s.v,g,'var(--'+k+')','var(--'+k+'-soft)')}</div>`}).join('');
-  return `<div class="gauges"><div><div><span class="big" style="color:var(--kcal)">${nf(t.k)}</span> <span class="unit">/ ${nf(G.kcal)} kcal</span></div>${meter(t.k,G.kcal,'var(--kcal)','var(--kcal-soft)')}</div>${h}</div>`+
+  const kc=G.kcal?`<span class="unit">/ ${nf(G.kcal)} kcal</span></div>${meter(t.k,G.kcal,'var(--kcal)','var(--kcal-soft)')}`:`<span class="unit">kcal</span></div><div class="unit">Objectif : remplissez votre Profil.</div>`;
+  return `<div class="gauges"><div><div><span class="big" style="color:var(--kcal)">${nf(t.k)}</span> ${kc}</div>${h}</div>`+
     (miss?`<p class="muted" style="margin:-4px 0 10px">* incomplet : un aliment n'a pas encore cette valeur (Mes aliments › À compléter).</p>`:'');
 }
 const evtHtml=e=>`<div class="evt"><div class="t"><b>${fmtT(e.time)} · ${EVT[e.kind]}</b>${e.text?' : '+esc(e.text):''}</div><button class="ico" data-ee="${e.id}" aria-label="Modifier">${ic.pen}</button><button class="ico del" data-de="${e.id}" aria-label="Supprimer">${ic.del}</button></div>`;
@@ -814,7 +816,7 @@ function weekBody(){
   const avg={k:filled.length?filled.reduce((a,x)=>a+x.t.k,0)/filled.length:0};
   const avgN=k=>{let v=0,miss=false;filled.forEach(x=>{const s=sumN(S.meals.filter(m=>m.date===x.d).flatMap(m=>m.items),k);v+=s.v;if(s.miss)miss=true});return {v:filled.length?v/filled.length:0,miss}};
   const W=400,H=230,tp=22,bot=34,left=40,right=6,ch=H-tp-bot;
-  const max=Math.max(G.kcal,...days.map(x=>x.t.k),500)*1.1;
+  const max=Math.max(G.kcal||0,...days.map(x=>x.t.k),500)*1.1;
   const step=max>3000?1000:500,ticks=[];for(let v=0;v<=max;v+=step)ticks.push(v);
   const y=v=>tp+ch-(v/max)*ch,bw=(W-left-right)/7,lbl=['Lu','Ma','Me','Je','Ve','Sa','Di'],T=todayIso();
   let g=`<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Calories par jour de la semaine">`;
@@ -823,7 +825,8 @@ function weekBody(){
     g+=`<g data-day="${x.d}" style="cursor:pointer"><rect x="${left+bw*i}" y="${tp}" width="${bw}" height="${ch+bot}" fill="transparent"/><rect x="${cx}" y="${y(x.t.k)}" width="${w}" height="${h}" rx="5" fill="var(--kcal)"/>`;
     if(x.t.k>0)g+=`<text x="${cx+w/2}" y="${y(x.t.k)-6}" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">${nf(x.t.k)}</text>`;
     g+=`<text x="${cx+w/2}" y="${H-bot+20}" text-anchor="middle" font-size="12" fill="${x.d===T?'var(--accent)':'var(--muted)'}" font-weight="${x.d===T?700:400}">${lbl[i]} ${parse(x.d).getDate()}</text></g>`});
-  g+=`<line x1="${left}" x2="${W-right}" y1="${y(G.kcal)}" y2="${y(G.kcal)}" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="7 6"/><text x="${W-right}" y="${y(G.kcal)-6}" text-anchor="end" font-size="12" fill="var(--accent)" font-weight="700">objectif</text></svg>`;
+  if(G.kcal)g+=`<line x1="${left}" x2="${W-right}" y1="${y(G.kcal)}" y2="${y(G.kcal)}" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="7 6"/><text x="${W-right}" y="${y(G.kcal)-6}" text-anchor="end" font-size="12" fill="var(--accent)" font-weight="700">objectif</text>`;
+  g+='</svg>';
   $('#body').innerHTML=`<div class="gauges">
     <div><div class="big" style="color:var(--kcal)">${nf(avg.k)}</div><div class="unit">kcal en moyenne / jour</div></div>
     ${TR().map(k=>{const a=avgN(k);return `<div><div class="big" style="color:var(--${k})">${nv(k,a.v)}${a.miss?'*':''}</div><div class="unit">${NUTS[k].unit} de ${NUTS[k].label.toLowerCase()} en moyenne / jour</div></div>`}).join('')}</div>
@@ -875,7 +878,7 @@ function analyseText(){
   const lw=lastWeight(),me=[P.sexe?(P.sexe==='H'?'homme':'femme'):'',P.an?ageOf(P)+' ans':'',P.taille?P.taille+' cm':'',lw?'poids '+nf1(lw.kg)+' kg':'',P.cible?'poids cible '+nf1(P.cible)+' kg':'',P.activite?'activité habituelle '+(ACT.find(x=>x[0]===P.activite)||[0,''])[1].toLowerCase():''].filter(Boolean);
   if(me.length)L.push('Mon profil : '+me.join(', '));
   L.push(`Période : du ${fullDate(a)} au ${fullDate(b)}`);
-  L.push(`Mes objectifs quotidiens : ${[nf(G.kcal)+' kcal'+(P.kcalPerso?'':' (calculé par l\'appli)'),...tr.filter(k=>G[k]!=null).map(k=>(NUTS[k].dir==='max'?'au plus ':'au moins ')+nv(k,G[k])+' '+NUTS[k].unit+' de '+NUTS[k].label.toLowerCase())].join(', ')}`);
+  L.push(`Mes objectifs quotidiens : ${[G.kcal?nf(G.kcal)+' kcal (calculé par l\'appli'+(P.cible&&lw&&P.cible<lw.kg?', objectif '+LVL[P.niveau][1].toLowerCase():'')+')':'calories : pas d\'objectif',...tr.filter(k=>G[k]!=null).map(k=>(NUTS[k].dir==='max'?'au plus ':'au moins ')+nv(k,G[k])+' '+NUTS[k].unit+' de '+NUTS[k].label.toLowerCase())].join(', ')}`);
   const used=[...new Set(ms.flatMap(m=>m.items.map(l=>l.foodId)))].map(food).filter(Boolean).sort(byName);
   L.push('');L.push('Aliments utilisés (valeurs que j\'ai saisies, pour 100 g) :');
   used.forEach(f=>L.push(`- ${f.nom} : ${[nf1(f.kcal)+' kcal',...tr.map(k=>{const v=nget(f,k);return v==null?NUTS[k].label.toLowerCase()+' : non renseigné':nv(k,v)+' '+NUTS[k].unit+' de '+NUTS[k].label.toLowerCase()})].join(', ')}${f.portion?` (1 ${pnom(f)} = ${nf1(f.portion)} g)`:''}${f.recette?` ; préparation maison : ${f.recette.items.map(l=>l.nom+' '+nf1(l.g)+' g').join(', ')}${f.recette.poids?`, poids final ${nf1(f.recette.poids)} g`:''}${f.recette.n?`, ${nf1(f.recette.n)} parts`:''}`:''}`));
@@ -992,7 +995,8 @@ function calcKcal(){
     levels[k]={kcal:kc,raised:raw<floor,perWeek:def*7/7700,weeks:def>0?(w.kg-p.cible)*7700/(def*7):null}});
   return {bmr,tdee,floor:r10(floor),age,w,lose,gain,levels,kcal:lose?levels[p.niveau].kcal:r10(tdee)};
 }
-function applyCalc(){if(S.profile.kcalPerso)return;const c=calcKcal();if(c)S.goals.kcal=c.kcal}
+/* l'objectif de calories n'est pas laissé au choix libre : c'est l'un des trois niveaux calculés, ou rien tant que le profil est incomplet */
+function applyCalc(){const c=calcKcal(),v=c?c.kcal:null;if(S.goals.kcal!==v){S.goals.kcal=v;return true}return false}
 function addWeight(after){
   const w=lastWeight();
   numpad({title:'Mon poids',sub:'De préférence le matin, à jeun.',value:w?w.kg:null,unit:'kg',okLabel:'Enregistrer',done:v=>{
@@ -1026,7 +1030,7 @@ function profil(){
     const L=c.lose?c.levels[p.niveau]:null;
     /* toucher un niveau = le prendre comme objectif ; aucun n'est surligné quand l'objectif est le choix de l'utilisateur */
     if(c.lose)calc+=`<div class="lvl">${Object.entries(LVL).map(([k,[d,l]])=>{const x=c.levels[k];
-      return `<button data-lv="${k}" aria-pressed="${!p.kcalPerso&&p.niveau===k}">${l}${k==='normal'?' (conseillé)':''}<b>${nf(x.kcal)} kcal</b>≈ ${nf1(x.perWeek)} kg / sem.${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>limité au seuil</i>':''}</button>`}).join('')}</div>`;
+      return `<button data-lv="${k}" aria-pressed="${p.niveau===k}">${l}${k==='normal'?' (conseillé)':''}<b>${nf(x.kcal)} kcal</b>≈ ${nf1(x.perWeek)} kg / sem.${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>limité au seuil</i>':''}</button>`}).join('')}</div>`;
     calc+=`<div class="note">Votre corps dépense au repos environ <b>${nf(c.bmr)} kcal</b> par jour (formule de Mifflin-St Jeor) ; avec votre activité, environ <b>${nf(c.tdee)} kcal</b>.
       ${c.lose?`Pour perdre environ ${nf1(L.perWeek)} kg par semaine, NutriNote propose <b>${nf(L.kcal)} kcal</b> par jour${L.weeks?', soit votre poids cible vers '+until(L.weeks):''}.${L.raised?' Cet objectif a été limité pour ne pas descendre sous le seuil.':''}`
         :c.gain?`Pour prendre du poids, demandez conseil à votre médecin. NutriNote propose de garder <b>${nf(c.kcal)} kcal</b> par jour.`
@@ -1036,9 +1040,7 @@ function profil(){
   }
   /* avec un poids cible plus bas, le titre invite à choisir parmi les trois niveaux ; sinon il n'y a rien à choisir */
   const kcalCard=`<div class="card"><h2 style="margin-top:0">${c&&c.lose?'Choisissez votre objectif':'Mon objectif de calories'}</h2>${calc}
-    <div style="margin-top:10px">Mon objectif : <span class="big" style="color:var(--kcal)">${nf(S.goals.kcal)}</span> <span class="unit">kcal par jour (${p.kcalPerso||!c?'votre choix':c.lose?LVL[p.niveau][1].toLowerCase():'proposé par NutriNote'})</span></div>
-    ${p.kcalPerso&&c&&!c.lose&&c.kcal!==S.goals.kcal?`<button class="btn ghost wide" id="useCalc" style="margin-top:8px">Prendre les ${nf(c.kcal)} kcal proposés</button>`:''}
-    <button class="btn ghost wide" id="ownK" style="margin-top:8px">Modifier mon objectif</button>
+    ${c?`<div style="margin-top:10px">Mon objectif : <span class="big" style="color:var(--kcal)">${nf(c.kcal)}</span> <span class="unit">kcal par jour (${c.lose?LVL[p.niveau][1].toLowerCase():'garder mon poids'})</span></div>`:''}
     <p class="muted" style="margin-bottom:0">En cas de traitement ou de maladie, demandez l'avis de votre médecin.</p></div>`;
   const nutRow=k=>{const on=tr.includes(k),g=S.goals[k];
     return `<label class="chk"><input type="checkbox" data-nut="${k}" ${on?'checked':''}><span>${NUTS[k].label}<span class="sub">${on?NREP[k]:NUTS[k].dir==='max'?'à ne pas dépasser':'à atteindre'}</span></span></label>
@@ -1073,10 +1075,7 @@ function profil(){
   $('#pci').onclick=()=>numpad({title:'Poids cible',sub:'Facultatif : seulement si vous voulez changer de poids.',value:p.cible,unit:'kg',okLabel:'OK',done:v=>{if(v<30||v>300){toast('Poids non valable.');return}set('cible',v)}});
   const nc=$('#noCible');if(nc)nc.onclick=()=>set('cible',null);
   $('#pact').onchange=e=>set('activite',e.target.value?+e.target.value:null);
-  app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{p.niveau=b.dataset.lv;p.kcalPerso=false;applyCalc();save();profil();toast('Objectif : '+nf(S.goals.kcal)+' kcal par jour.')});
-  const uc=$('#useCalc');if(uc)uc.onclick=()=>{p.kcalPerso=false;applyCalc();save();profil();toast('Objectif : '+nf(S.goals.kcal)+' kcal par jour.')};
-  $('#ownK').onclick=()=>numpad({title:'Mon objectif de calories par jour',value:S.goals.kcal,unit:'kcal',okLabel:'OK',done:v=>{
-    S.goals.kcal=Math.round(v);p.kcalPerso=true;save();profil();if(c&&v<c.floor)toast('Attention : en dessous de '+nf(c.floor)+' kcal, demandez l\'avis de votre médecin.')}});
+  app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{p.niveau=b.dataset.lv;applyCalc();save();profil();toast('Objectif : '+nf(S.goals.kcal)+' kcal par jour.')});
   app.querySelectorAll('[data-nut]').forEach(x=>x.onchange=()=>{const k=x.dataset.nut;
     if(x.checked){if(p.nuts.length>=MAXNUTS){x.checked=false;toast(MAXNUTS+' nutriments au plus : décochez-en un d\'abord.');return}
       p.nuts.push(k);
@@ -1106,7 +1105,7 @@ function aide(){
    <li><b>Mes repas</b> : le résultat du jour ou de la semaine. Le crayon rouvre un repas pour le corriger. Touchez la date pour ouvrir le calendrier.</li>
    <li><b>Reprendre un repas noté</b> (dans la liste des catégories de Noter) : choisissez un repas d'un autre jour, ses aliments s'ajoutent au repas en cours. Pratique pour des restes.</li>
    <li><b>+ Note</b> (dans Noter ou Mes repas) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). Avec la case Sommeil du profil : <b>+ Lever</b> et <b>+ Coucher</b>.</li>
-   <li><b>Profil</b> : vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, et votre poids (de préférence le matin, à jeun).</li>
+   <li><b>Profil</b> : vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, et votre poids (de préférence le matin, à jeun). Tout s'enregistre au fur et à mesure. Un nutriment ajouté se saisit dans vos aliments : voir Mes aliments › À compléter.</li>
    <li><b>Analyse</b> : copiez votre carnet pour l'IA de votre choix, avec votre question.</li>
    <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li></ul></div>`;
   bind();
@@ -1115,6 +1114,7 @@ function aide(){
 /* ================= rendu ================= */
 function render(){
   TODAY=todayIso();
+  if(applyCalc())save();
   ({home,noter,aliments,fiche:openFiche,repas,types,analyse,sauvegarde,profil,aide}[view]||home)();
 }
 render();
