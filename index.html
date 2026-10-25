@@ -1025,7 +1025,7 @@ function profil(){
   else{
     const L=c.lose?c.levels[p.niveau]:null;
     /* toucher un niveau = le prendre comme objectif ; aucun n'est surligné quand l'objectif est le choix de l'utilisateur */
-    if(c.lose)calc+=`<p class="muted" style="margin:0">Choisissez votre objectif :</p><div class="lvl">${Object.entries(LVL).map(([k,[d,l]])=>{const x=c.levels[k];
+    if(c.lose)calc+=`<div class="lvl">${Object.entries(LVL).map(([k,[d,l]])=>{const x=c.levels[k];
       return `<button data-lv="${k}" aria-pressed="${!p.kcalPerso&&p.niveau===k}">${l}${k==='normal'?' (conseillé)':''}<b>${nf(x.kcal)} kcal</b>≈ ${nf1(x.perWeek)} kg / sem.${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>limité au seuil</i>':''}</button>`}).join('')}</div>`;
     calc+=`<div class="note">Votre corps dépense au repos environ <b>${nf(c.bmr)} kcal</b> par jour (formule de Mifflin-St Jeor) ; avec votre activité, environ <b>${nf(c.tdee)} kcal</b>.
       ${c.lose?`Pour perdre environ ${nf1(L.perWeek)} kg par semaine, NutriNote propose <b>${nf(L.kcal)} kcal</b> par jour${L.weeks?', soit votre poids cible vers '+until(L.weeks):''}.${L.raised?' Cet objectif a été limité pour ne pas descendre sous le seuil.':''}`
@@ -1034,7 +1034,8 @@ function profil(){
       Ne descendez pas en dessous de <b>${nf(c.floor)} kcal</b> par jour sans avis médical.</div>`;
     if(p.cible&&p.taille&&p.cible/Math.pow(p.taille/100,2)<18.5)calc+=`<div class="banner">Ce poids cible est très bas pour votre taille. Parlez-en à votre médecin avant de vous le fixer.</div>`;
   }
-  const kcalCard=`<div class="card"><h2 style="margin-top:0">Mon objectif de calories</h2>${calc}
+  /* avec un poids cible plus bas, le titre invite à choisir parmi les trois niveaux ; sinon il n'y a rien à choisir */
+  const kcalCard=`<div class="card"><h2 style="margin-top:0">${c&&c.lose?'Choisissez votre objectif':'Mon objectif de calories'}</h2>${calc}
     <div style="margin-top:10px">Mon objectif : <span class="big" style="color:var(--kcal)">${nf(S.goals.kcal)}</span> <span class="unit">kcal par jour (${p.kcalPerso||!c?'votre choix':c.lose?LVL[p.niveau][1].toLowerCase():'proposé par NutriNote'})</span></div>
     ${p.kcalPerso&&c&&!c.lose&&c.kcal!==S.goals.kcal?`<button class="btn ghost wide" id="useCalc" style="margin-top:8px">Prendre les ${nf(c.kcal)} kcal proposés</button>`:''}
     <button class="btn ghost wide" id="ownK" style="margin-top:8px">Modifier mon objectif</button>
