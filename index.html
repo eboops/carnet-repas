@@ -351,10 +351,11 @@ function askText(title,value,okLabel,done,ph){
 function numpad(opts){
   const modes=opts.modes||null;let m=0,s='';
   if(opts.value!=null&&opts.value!==''){const v=modes?modes[0].fromG(opts.value):opts.value;s=String(Math.round(v*10)/10).replace('.',',')}
-  const bg=overlay('',`<div class="sheet"><h3>${opts.title}</h3>${opts.sub?`<div class="subrow"><div class="muted">${opts.sub}</div>${opts.onEdit?`<button class="ico" id="npEdit" aria-label="${T('Corriger les valeurs','Исправить значения')}">${ic.pen}</button>`:''}</div>`:''}<div id="np"></div></div>`);
+  const bg=overlay('',`<div class="sheet"><h3>${opts.title}</h3>${opts.sub?`<div class="subrow"><div class="muted">${opts.sub}</div>${opts.onEdit?`<button class="ico" id="npEdit" aria-label="${T('Corriger les valeurs','Исправить значения')}">${ic.pen}</button>`:''}</div>`:''}${opts.date?`<input type="date" id="npDate" value="${opts.date}" max="${todayIso()}" aria-label="${T('Date','Дата')}" style="margin-top:8px">`:''}<div id="np"></div></div>`);
   const box=bg.querySelector('#np');
   const num=()=>parseFloat(s.replace(',','.'));
   const kb=e=>{if(!document.body.contains(bg)){document.removeEventListener('keydown',kb);return}
+    if(e.target&&e.target.tagName==='INPUT')return;
     if(/^[0-9]$/.test(e.key))press(e.key);else if(e.key===','||e.key==='.')press(',');else if(e.key==='Backspace')press('⌫');else if(e.key==='Enter'){e.preventDefault();press('ok')}else if(e.key==='Escape')bg.remove()};
   if(opts.onEdit)bg.querySelector('#npEdit').onclick=()=>{bg.remove();document.removeEventListener('keydown',kb);opts.onEdit()};
   const draw=()=>{
@@ -368,7 +369,7 @@ function numpad(opts){
   };
   const press=k=>{
     if(k==='ok'&&s===''&&opts.allowEmpty){bg.remove();document.removeEventListener('keydown',kb);opts.done(null);return}
-    if(k==='ok'){const n=num();if(s===''||isNaN(n)||(opts.positive!==false&&!(n>0))){toast(T('Tapez une valeur.','Введите значение.'));return}bg.remove();document.removeEventListener('keydown',kb);opts.done(modes?modes[m].toG(n):n);return}
+    if(k==='ok'){const n=num();if(s===''||isNaN(n)||(opts.positive!==false&&!(n>0))){toast(T('Tapez une valeur.','Введите значение.'));return}const dt=bg.querySelector('#npDate');bg.remove();document.removeEventListener('keydown',kb);opts.done(modes?modes[m].toG(n):n,dt?(dt.value||todayIso()):null);return}
     if(k==='⌫')s=s.slice(0,-1);
     else if(k===','){if(!s.includes(','))s=(s||'0')+','}
     else{if(s.replace(',','').length>=6)return;const dec=s.split(',')[1];if(dec!=null&&dec.length>=1)return;s=(s==='0'?'':s)+k}
@@ -606,8 +607,7 @@ let alimSel={ctx:'aliments',v:'toutes',search:false,q:''};
 function aliments(){
   app.className='';
   app.innerHTML=`<div class="stick">${top(T('Mes aliments','Мои продукты'))}<button class="btn wide" id="newF" style="margin-bottom:8px">${T('+ Créer un aliment','+ Создать продукт')}</button><div id="pb">${pickBar(alimSel)}</div></div>
-   <div class="list" id="res"></div>
-   <p class="muted" style="margin-top:8px">${T('Touchez un aliment pour ouvrir sa fiche (modifier, archiver, supprimer).','Нажмите на продукт, чтобы открыть карточку (изменить, в архив, удалить).')}</p>`;
+   <div class="list" id="res"></div>`;
   bind();
   $('#newF').onclick=()=>go('fiche',{editFood:null,returnTo:'aliments',presetCat:alimSel.v.startsWith('c:')&&alimSel.v!=='c:'+NOCAT?alimSel.v.slice(2):null,prefill:null});
   const fill=()=>{const el=$('#res');el.innerHTML=renderList(alimSel,alimSel.search?alimSel.q:'');
@@ -656,7 +656,8 @@ function fiche(){
   ${fd.isPrep?prepHtml:`<div class="grid2"><div><label>${T('Calories','Калории')} ${P100}</label>${nfield('fk',fd.kcal,KCAL,FILL)}</div>${TR().map(k=>`<div><label>${NUTS[k].label} ${P100}</label>${nfield('fn_'+k,k==='prot'?fd.prot:(fd.n[k]==null?null:fd.n[k]),NUTS[k].unit,FILL)}</div>`).join('')}</div>
   <div class="grid2"><div><label>${T('Portion (facultatif)','Порция (необязательно)')}</label>${nfield('fpo',fd.portion,T('g','г'),'—')}</div><div><label for="fpn">${T('Nom de la portion','Название порции')}</label><input id="fpn" value="${esc(fd.portionNom||'')}" placeholder="${T('ex. tranche','напр. ломтик')}" autocomplete="off" maxlength="40"></div></div>`}
   ${f?`<div class="grid3" style="margin-top:16px"><button class="btn ghost" id="fx">${T('Annuler','Отмена')}</button><button class="btn warn" id="fdel">${T('Supprimer','Удалить')}</button><button class="btn" id="fs">${T('Enregistrer','Сохранить')}</button></div>
-      ${f.arch?`<button class="btn ghost wide" id="funarch" style="margin-top:8px">${T('Désarchiver','Вернуть из архива')}</button>`:''}`
+      ${f.arch?`<button class="btn ghost wide" id="funarch" style="margin-top:8px">${T('Désarchiver','Вернуть из архива')}</button>`
+        :`<button class="btn ghost wide" id="farch" style="margin-top:8px">${T('Archiver (ne plus le proposer)','В архив (больше не предлагать)')}</button>`}`
     :`<div class="grid2" style="margin-top:16px"><button class="btn ghost" id="fx">${T('Annuler','Отмена')}</button><button class="btn" id="fs">${T('Ajouter l\'aliment','Добавить продукт')}</button></div>`}
   <div style="height:20px"></div>`;
   bind();
@@ -703,6 +704,8 @@ function fiche(){
     if(n&&(data.kcal!==f.kcal||data.prot!==f.prot||JSON.stringify(data.n)!==JSON.stringify(f.n||{})))ask(T('Modifier « '+esc(f.nom)+' » ?','Изменить «'+esc(f.nom)+'»?'),usedMsg(n),[{label:T('Enregistrer','Сохранить'),fn:doSave},{label:T('Annuler','Отмена'),cls:'ghost'}]);
     else doSave();
   };
+  /* archiver : réversible, les repas passés restent intacts ; pas de confirmation */
+  const ar=$('#farch');if(ar)ar.onclick=()=>{f.arch=true;save();navBack(()=>toast(T('Archivé : il n\'est plus proposé, vos repas passés restent intacts.','В архиве: больше не предлагается, прошлые записи не изменились.')))};
   const un=$('#funarch');if(un)un.onclick=()=>{f.arch=false;save();navBack(()=>toast(T('« '+f.nom+' » est de nouveau proposé.','«'+f.nom+'» снова предлагается.')))};
   const del=$('#fdel');if(del)del.onclick=()=>{
     const n=usedMeals(f.id),mods=usedModels(f.id);
@@ -1025,8 +1028,11 @@ function applyCalc(){
 }
 function addWeight(after){
   const w=lastWeight();
-  numpad({title:T('Mon poids','Мой вес'),sub:T('De préférence le matin, à jeun.','Лучше утром, натощак.'),value:w?w.kg:null,unit:KG,okLabel:T('Enregistrer','Сохранить'),done:v=>{
-    S.weights.push({id:uid(),date:todayIso(),time:hm(),kg:v});applyCalc();save();toast(T('Poids noté : ','Вес записан: ')+nf1(v)+' '+KG+'.');after&&after()}});
+  /* la date peut être changée pour noter une pesée faite un autre jour ; l'heure n'est gardée que pour aujourd'hui */
+  numpad({title:T('Mon poids','Мой вес'),sub:T('De préférence le matin, à jeun. Changez la date pour une pesée d\'un autre jour.','Лучше утром, натощак. Для другого дня измените дату.'),value:w?w.kg:null,unit:KG,date:todayIso(),okLabel:T('Enregistrer','Сохранить'),done:(v,d)=>{
+    if(v<30||v>300){toast(T('Poids non valable : ','Неверный вес: ')+nf1(v)+' '+KG+'.');return}
+    const today=d===todayIso();
+    S.weights.push({id:uid(),date:d,time:today?hm():'',kg:v});applyCalc();save();toast(T('Poids noté : ','Вес записан: ')+nf1(v)+' '+KG+(today?'':', '+T(longDate(d).toLowerCase(),dayMonth(d)))+'.');after&&after()}});
 }
 function weightChart(){
   const ws=[...S.weights].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));if(ws.length<2)return '';
@@ -1132,21 +1138,21 @@ function aide(){
    <li><b>Noter un repas</b> : choisissez une catégorie, touchez un aliment, tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. Puis « Enregistrer le repas ».</li>
    <li>Une valeur fausse sur l'emballage ? Dans le pavé, le petit crayon corrige les calories et protéines de l'aliment.</li>
    <li><b>Repas types</b> : un repas que vous mangez souvent se garde avec « ☆ Garder comme repas type », puis se retrouve dans « Repas types ».</li>
-   <li><b>Mes aliments</b> : créer un aliment ou une préparation (recette maison), corriger une fiche, archiver un aliment que vous n'utilisez plus.</li>
+   <li><b>Mes aliments</b> : créer un aliment ou une préparation (recette maison), corriger une fiche, archiver un aliment que vous n'utilisez plus (bouton « Archiver » sur sa fiche ; il reste dans « Archivés »).</li>
    <li><b>Mes repas</b> : le résultat du jour ou de la semaine. Le crayon rouvre un repas pour le corriger. Touchez la date pour ouvrir le calendrier.</li>
    <li><b>Reprendre un repas noté</b> (dans la liste des catégories de Noter) : choisissez un repas d'un autre jour, ses aliments s'ajoutent au repas en cours. Pratique pour des restes.</li>
    <li><b>+ Note</b> (dans Noter ou Mes repas) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). Avec la case Sommeil du profil : <b>+ Lever</b> et <b>+ Coucher</b>.</li>
-   <li><b>Profil</b> : vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, et votre poids (de préférence le matin, à jeun). Tout s'enregistre au fur et à mesure. Un nutriment ajouté se saisit dans vos aliments : voir Mes aliments › À compléter. La langue se choisit en bas du Profil.</li>
+   <li><b>Profil</b> : vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, et votre poids (de préférence le matin, à jeun ; changez la date pour une pesée d'un autre jour). Tout s'enregistre au fur et à mesure. Un nutriment ajouté se saisit dans vos aliments : voir Mes aliments › À compléter. La langue se choisit en bas du Profil.</li>
    <li><b>Analyse</b> : copiez votre carnet pour l'IA de votre choix, avec votre question.</li>
    <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li>`,`
    <li><b>Записать приём пищи</b>: выберите категорию, нажмите на продукт, введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. Затем «Сохранить».</li>
    <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет калории и нутриенты продукта.</li>
    <li><b>Типовые приёмы пищи</b>: то, что вы часто едите, сохраняется кнопкой «☆ Сохранить как типовой» и потом добавляется одним нажатием.</li>
-   <li><b>Мои продукты</b>: создать продукт или домашнее блюдо (рецепт), исправить карточку, убрать в архив продукт, который вы больше не покупаете.</li>
+   <li><b>Мои продукты</b>: создать продукт или домашнее блюдо (рецепт), исправить карточку, убрать в архив продукт, который вы больше не покупаете (кнопка «В архив» в его карточке; он остаётся в списке «В архиве»).</li>
    <li><b>Мои приёмы пищи</b>: итог за день или за неделю. Карандаш открывает запись для исправления. Нажмите на дату, чтобы открыть календарь.</li>
    <li><b>Повторить записанный приём пищи</b> (в списке категорий при записи): выберите приём пищи другого дня, его продукты добавятся в текущий. Удобно для остатков.</li>
    <li><b>+ Заметка</b> (при записи или в «Мои приёмы пищи»): несколько слов с датой, без подсчётов («2 часа на велосипеде», «небольшая температура»). Если в Профиле отмечен сон: <b>+ Подъём</b> и <b>+ Отбой</b>.</li>
-   <li><b>Профиль</b>: ваши данные для расчёта нормы калорий, нутриенты для отслеживания (не более 3), сон и вес (лучше утром, натощак). Всё сохраняется сразу. Значения нового нутриента вводятся в продуктах: см. Мои продукты › Дополнить. Язык выбирается внизу Профиля.</li>
+   <li><b>Профиль</b>: ваши данные для расчёта нормы калорий, нутриенты для отслеживания (не более 3), сон и вес (лучше утром, натощак; для взвешивания в другой день измените дату). Всё сохраняется сразу. Значения нового нутриента вводятся в продуктах: см. Мои продукты › Дополнить. Язык выбирается внизу Профиля.</li>
    <li><b>Анализ</b>: скопируйте дневник для любого ИИ вместе со своим вопросом.</li>
    <li><b>Резервная копия</b>: регулярно сохраняйте файл. Данные остаются на этом устройстве, никуда не отправляются.</li>`)}</ul></div>`;
   bind();
