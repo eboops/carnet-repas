@@ -182,6 +182,8 @@ h2{font-size:1rem;margin:16px 0 8px}
 .chk:last-child{border-bottom:0}
 .chk input{width:22px;height:22px;flex:none;accent-color:var(--accent)}
 .chk .sub{display:block;font-size:.8rem;color:var(--muted)}
+.choice{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:10px;padding:11px;font-weight:700}
+.choice[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
 .lvl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
 .lvl button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 4px;font-size:.8rem;line-height:1.25;color:var(--ink)}
 .lvl button b{display:block;font-size:1rem}
@@ -1022,19 +1024,20 @@ function profil(){
   if(!c)calc=`<p class="muted" style="margin-top:0">Indiquez votre sexe, votre année de naissance, votre taille, votre poids et votre activité : NutriNote vous proposera un apport de calories par jour.</p>`;
   else{
     const L=c.lose?c.levels[p.niveau]:null;
-    if(c.lose)calc+=`<p class="muted" style="margin:0">Choisissez votre rythme :</p><div class="lvl">${Object.entries(LVL).map(([k,[d,l]])=>{const x=c.levels[k];
-      return `<button data-lv="${k}" aria-pressed="${p.niveau===k}">${l}${k==='normal'?' (conseillé)':''}<b>${nf(x.kcal)} kcal</b>≈ ${nf1(x.perWeek)} kg / sem.${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>limité au seuil</i>':''}</button>`}).join('')}</div>`;
+    /* toucher un niveau = le prendre comme objectif ; aucun n'est surligné quand l'objectif est le choix de l'utilisateur */
+    if(c.lose)calc+=`<p class="muted" style="margin:0">Choisissez votre objectif :</p><div class="lvl">${Object.entries(LVL).map(([k,[d,l]])=>{const x=c.levels[k];
+      return `<button data-lv="${k}" aria-pressed="${!p.kcalPerso&&p.niveau===k}">${l}${k==='normal'?' (conseillé)':''}<b>${nf(x.kcal)} kcal</b>≈ ${nf1(x.perWeek)} kg / sem.${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>limité au seuil</i>':''}</button>`}).join('')}</div>`;
     calc+=`<div class="note">Votre corps dépense au repos environ <b>${nf(c.bmr)} kcal</b> par jour (formule de Mifflin-St Jeor) ; avec votre activité, environ <b>${nf(c.tdee)} kcal</b>.
-      ${c.lose?`Pour perdre environ ${nf1(L.perWeek)} kg par semaine, NutriNote propose <b>${nf(L.kcal)} kcal</b> par jour${L.weeks?', soit votre poids cible vers '+until(L.weeks):''}.${L.raised?' Ce rythme a été ralenti pour ne pas descendre sous le seuil.':''}`
+      ${c.lose?`Pour perdre environ ${nf1(L.perWeek)} kg par semaine, NutriNote propose <b>${nf(L.kcal)} kcal</b> par jour${L.weeks?', soit votre poids cible vers '+until(L.weeks):''}.${L.raised?' Cet objectif a été limité pour ne pas descendre sous le seuil.':''}`
         :c.gain?`Pour prendre du poids, demandez conseil à votre médecin. NutriNote propose de garder <b>${nf(c.kcal)} kcal</b> par jour.`
         :`Pour garder votre poids : <b>${nf(c.kcal)} kcal</b> par jour.`}
       Ne descendez pas en dessous de <b>${nf(c.floor)} kcal</b> par jour sans avis médical.</div>`;
     if(p.cible&&p.taille&&p.cible/Math.pow(p.taille/100,2)<18.5)calc+=`<div class="banner">Ce poids cible est très bas pour votre taille. Parlez-en à votre médecin avant de vous le fixer.</div>`;
   }
   const kcalCard=`<div class="card"><h2 style="margin-top:0">Mon objectif de calories</h2>${calc}
-    <div class="subrow" style="margin-top:8px"><div><span class="big" style="color:var(--kcal)">${nf(S.goals.kcal)}</span> <span class="unit">kcal par jour${p.kcalPerso?' · choisi par vous':''}</span></div></div>
-    ${p.kcalPerso&&c&&c.kcal!==S.goals.kcal?`<button class="btn ghost wide" id="useCalc" style="margin-top:8px">Reprendre le calcul (${nf(c.kcal)} kcal)</button>`:''}
-    <button class="btn ghost wide" id="ownK" style="margin-top:8px">Choisir moi-même mon objectif</button>
+    <div style="margin-top:10px">Mon objectif : <span class="big" style="color:var(--kcal)">${nf(S.goals.kcal)}</span> <span class="unit">kcal par jour (${p.kcalPerso||!c?'votre choix':c.lose?LVL[p.niveau][1].toLowerCase():'proposé par NutriNote'})</span></div>
+    ${p.kcalPerso&&c&&!c.lose&&c.kcal!==S.goals.kcal?`<button class="btn ghost wide" id="useCalc" style="margin-top:8px">Prendre les ${nf(c.kcal)} kcal proposés</button>`:''}
+    <button class="btn ghost wide" id="ownK" style="margin-top:8px">Modifier mon objectif</button>
     <p class="muted" style="margin-bottom:0">En cas de traitement ou de maladie, demandez l'avis de votre médecin.</p></div>`;
   const nutRow=k=>{const on=tr.includes(k),g=S.goals[k];
     return `<label class="chk"><input type="checkbox" data-nut="${k}" ${on?'checked':''}><span>${NUTS[k].label}<span class="sub">${on?NREP[k]:NUTS[k].dir==='max'?'à ne pas dépasser':'à atteindre'}</span></span></label>
@@ -1042,7 +1045,7 @@ function profil(){
   const todo=missingFoods().length;
   app.innerHTML=top('Profil')+`
    <div class="card"><h2 style="margin-top:0">Moi</h2>
-    <div class="seg" style="margin:0"><button data-sx="H" aria-pressed="${p.sexe==='H'}">Homme</button><button data-sx="F" aria-pressed="${p.sexe==='F'}">Femme</button></div>
+    <div class="grid2" style="gap:12px"><button class="choice" data-sx="H" aria-pressed="${p.sexe==='H'}">Homme</button><button class="choice" data-sx="F" aria-pressed="${p.sexe==='F'}">Femme</button></div>
     <div class="grid2"><div><label>Année de naissance</label>${nfield('pan',p.an,p.an+(ageOf(p)?' ('+ageOf(p)+' ans)':''),'à remplir')}</div><div><label>Taille</label>${nfield('pta',p.taille,nf(p.taille)+' cm','à remplir')}</div></div>
     <div class="grid2"><div><label>Poids actuel</label>${nfield('pw',w?w.kg:null,w?nf1(w.kg)+' kg':'','à remplir')}</div><div><label>Poids cible (facultatif)</label>${nfield('pci',p.cible,nf1(p.cible)+' kg','aucun')}</div></div>
     ${p.cible?'<button class="btn ghost small" id="noCible" style="margin-top:8px">Retirer le poids cible</button>':''}
@@ -1069,8 +1072,8 @@ function profil(){
   $('#pci').onclick=()=>numpad({title:'Poids cible',sub:'Facultatif : seulement si vous voulez changer de poids.',value:p.cible,unit:'kg',okLabel:'OK',done:v=>{if(v<30||v>300){toast('Poids non valable.');return}set('cible',v)}});
   const nc=$('#noCible');if(nc)nc.onclick=()=>set('cible',null);
   $('#pact').onchange=e=>set('activite',e.target.value?+e.target.value:null);
-  app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>set('niveau',b.dataset.lv));
-  const uc=$('#useCalc');if(uc)uc.onclick=()=>{p.kcalPerso=false;applyCalc();save();profil();toast('Objectif calculé repris.')};
+  app.querySelectorAll('[data-lv]').forEach(b=>b.onclick=()=>{p.niveau=b.dataset.lv;p.kcalPerso=false;applyCalc();save();profil();toast('Objectif : '+nf(S.goals.kcal)+' kcal par jour.')});
+  const uc=$('#useCalc');if(uc)uc.onclick=()=>{p.kcalPerso=false;applyCalc();save();profil();toast('Objectif : '+nf(S.goals.kcal)+' kcal par jour.')};
   $('#ownK').onclick=()=>numpad({title:'Mon objectif de calories par jour',value:S.goals.kcal,unit:'kcal',okLabel:'OK',done:v=>{
     S.goals.kcal=Math.round(v);p.kcalPerso=true;save();profil();if(c&&v<c.floor)toast('Attention : en dessous de '+nf(c.floor)+' kcal, demandez l\'avis de votre médecin.')}});
   app.querySelectorAll('[data-nut]').forEach(x=>x.onchange=()=>{const k=x.dataset.nut;
