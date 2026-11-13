@@ -184,7 +184,8 @@ h2{font-size:1rem;margin:16px 0 8px}
 .chk .sub{display:block;font-size:.8rem;color:var(--muted)}
 .choice{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:10px;padding:11px;font-weight:700}
 .choice[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-.lvl{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-top:6px}
+.lvl{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:6px;margin-top:6px}
+.lvl+.muted,.lvl+.note{margin-top:16px}
 .lvl button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 4px;font-size:.8rem;line-height:1.25;color:var(--ink)}
 .lvl button b{display:block;font-size:1rem}
 .lvl button[aria-pressed="true"]{border:2px solid var(--accent);background:var(--accent-soft)}
@@ -278,6 +279,8 @@ function migrate(){
   if(!S.profile.niveau)S.profile.niveau='normal';
   if(!Array.isArray(S.weights))S.weights=[];
   if(!Array.isArray(S.notes))S.notes=[];
+  /* ajout du 13/11/2026 : case « Notes personnelles », décochée pour un carnet neuf, cochée d'office si le carnet a déjà des notes */
+  if(typeof S.profile.notes!=='boolean')S.profile.notes=S.notes.some(n=>n.kind==='note');
   S.base=1;delete S.example;
 }
 migrate();
@@ -290,13 +293,17 @@ const dayTot=d=>sum(S.meals.filter(m=>m.date===d).flatMap(m=>m.items));
 const mealSort=(a,b)=>(a.time||'99').localeCompare(b.time||'99');
 const byName=(a,b)=>a.nom.localeCompare(b.nom,LANG);
 const NOCAT=T('Sans catégorie','Без категории');
-const catOf=f=>f.cat&&S.cats.includes(f.cat)?f.cat:NOCAT;
+/* une préparation n'a pas de catégorie (elle en mélange plusieurs) : elle se range dans « Préparations » ; son ancienne catégorie reste dans les données, sans être affichée */
+const PREPS=T('Préparations','Домашние блюда');
+const catOf=f=>f.recette?PREPS:f.cat&&S.cats.includes(f.cat)?f.cat:NOCAT;
 const usedMeals=id=>S.meals.filter(m=>m.items.some(l=>l.foodId===id)).length;
 const usedModels=id=>S.models.filter(m=>m.items.some(l=>l.foodId===id));
 const pnom=f=>f.portionNom||T('portion','порция');
 const G_=T(' g',' г');
 /* « 1 tranche (30 g) », « 2 × tranche (60 g) » quand ça tombe juste, sinon « 75 g » */
-const qty=(f,g)=>{if(f&&f.portion){const n=g/f.portion;if(Math.abs(n*4-Math.round(n*4))<.02)return (n===1?'1 ':nf1(n)+' × ')+pnom(f)+' ('+nf1(g)+G_+')'}return nf1(g)+G_};
+/* en portions quand la quantité tombe sur des quarts ou des tiers (0,25 · 0,33 · 1,5…), deux décimales au plus */
+const nf2=v=>(Math.round(v*100)/100).toLocaleString(LOC);
+const qty=(f,g)=>{if(f&&f.portion){const n=g/f.portion;if(Math.abs(n*4-Math.round(n*4))<.02||Math.abs(n*3-Math.round(n*3))<.035)return (Math.abs(n-1)<.001?'1 ':nf2(n)+' × ')+pnom(f)+' ('+nf1(g)+G_+')'}return nf1(g)+G_};
 const usedMsg=n=>T(`Cette modification sera répercutée dans ${n>1?'les '+n+' repas':'le repas'} où cet aliment est déjà présent.`,`Изменение отразится во всех приёмах пищи с этим продуктом (их: ${n}).`);
 /* nutriments suivis : valeurs, sommes, textes */
 const TR=()=>NKEYS.filter(k=>S.profile.nuts.includes(k));
@@ -350,7 +357,9 @@ function askText(title,value,okLabel,done,ph){
 /* ================= pavé numérique (le clavier du téléphone n'apparaît pas) ================= */
 function numpad(opts){
   const modes=opts.modes||null;let m=0,s='';
-  if(opts.value!=null&&opts.value!==''){const v=modes?modes[0].fromG(opts.value):opts.value;s=String(Math.round(v*10)/10).replace('.',',')}
+  /* nombre de décimales permis : deux en portions (0,33 plaquette, 0,25 d'un plat), une ailleurs */
+  const decs=i=>modes?(modes[i].dec||1):(opts.dec||1),rnd=(v,d)=>String(Math.round(v*10**d)/10**d).replace('.',',');
+  if(opts.value!=null&&opts.value!==''){const v=modes?modes[0].fromG(opts.value):opts.value;s=rnd(v,decs(0))}
   const bg=overlay('',`<div class="sheet"><h3>${opts.title}</h3>${opts.sub?`<div class="subrow"><div class="muted">${opts.sub}</div>${opts.onEdit?`<button class="ico" id="npEdit" aria-label="${T('Corriger les valeurs','Исправить значения')}">${ic.pen}</button>`:''}</div>`:''}${opts.date?`<input type="date" id="npDate" value="${opts.date}" max="${todayIso()}" aria-label="${T('Date','Дата')}" style="margin-top:8px">`:''}<div id="np"></div></div>`);
   const box=bg.querySelector('#np');
   const num=()=>parseFloat(s.replace(',','.'));
@@ -364,7 +373,7 @@ function numpad(opts){
       <div class="display">${esc(s)}<span class="cur"></span><small>${esc(unit)}</small></div><div class="calc">${extra}</div>
       <div class="pad">${['1','2','3','4','5','6','7','8','9',',','0','⌫'].map(k=>`<button data-k="${k}" ${k==='⌫'?'aria-label="'+T('Effacer','Стереть')+'"':''}>${k}</button>`).join('')}
       <button class="ok" data-k="ok">${opts.okLabel||T('Valider','OK')}</button></div>`;
-    box.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{const i=+b.dataset.m;if(i===m)return;const n=num();if(n>0){const g=modes[m].toG(n);s=String(Math.round(modes[i].fromG(g)*10)/10).replace('.',',')}m=i;draw()});
+    box.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{const i=+b.dataset.m;if(i===m)return;const n=num();if(n>0){const g=modes[m].toG(n);s=rnd(modes[i].fromG(g),decs(i))}m=i;draw()});
     box.querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>press(b.dataset.k));
   };
   const press=k=>{
@@ -372,7 +381,7 @@ function numpad(opts){
     if(k==='ok'){const n=num();if(s===''||isNaN(n)||(opts.positive!==false&&!(n>0))){toast(T('Tapez une valeur.','Введите значение.'));return}const dt=bg.querySelector('#npDate');bg.remove();document.removeEventListener('keydown',kb);opts.done(modes?modes[m].toG(n):n,dt?(dt.value||todayIso()):null);return}
     if(k==='⌫')s=s.slice(0,-1);
     else if(k===','){if(!s.includes(','))s=(s||'0')+','}
-    else{if(s.replace(',','').length>=6)return;const dec=s.split(',')[1];if(dec!=null&&dec.length>=1)return;s=(s==='0'?'':s)+k}
+    else{if(s.replace(',','').length>=6)return;const dec=s.split(',')[1];if(dec!=null&&dec.length>=decs(m))return;s=(s==='0'?'':s)+k}
     draw();
   };
   document.addEventListener('keydown',kb);
@@ -381,7 +390,7 @@ function numpad(opts){
 function qtyPad(f,g0,done,opt){
   opt=opt||{};
   const modes=[];
-  if(f.portion)modes.push({label:T('En portions','Порциями'),unit:'× '+pnom(f),toG:n=>n*f.portion,fromG:g=>g/f.portion});
+  if(f.portion)modes.push({label:T('En portions','Порциями'),unit:'× '+pnom(f),dec:2,toG:n=>n*f.portion,fromG:g=>g/f.portion});
   modes.push({label:T('En grammes','В граммах'),unit:T('g','г'),toG:n=>n,fromG:g=>g});
   const nl=nlineF(f);
   numpad({title:esc(f.nom),sub:`${nf1(f.kcal)} ${KCAL}${nl?' · '+nl:''} ${T('pour 100 g','на 100 г')}${f.portion?' · 1 '+esc(pnom(f))+' = '+nf1(f.portion)+G_:''}`,
@@ -414,8 +423,8 @@ function selectorOptions(ctx){
   if(ctx==='noter'&&S.models.length)o.push(['types',cnt(T('Repas types','Типовые приёмы пищи'),S.models.length)]);
   if(ctx==='noter'&&S.meals.length)o.push(['prev',T('Reprendre un repas noté…','Повторить записанный приём пищи…')]);
   const preps=active.filter(f=>f.recette).length;
-  if(ctx!=='ingr'&&preps)o.push(['preps',cnt(T('Préparations','Домашние блюда'),preps)]);
-  S.cats.forEach(c=>{const n=active.filter(f=>f.cat===c).length;if(n)o.push(['c:'+c,cnt(c,n)])});
+  if(ctx!=='ingr'&&preps)o.push(['preps',cnt(PREPS,preps)]);
+  S.cats.forEach(c=>{if(norm(c)===norm(PREPS))return;const n=active.filter(f=>catOf(f)===c).length;if(n)o.push(['c:'+c,cnt(c,n)])});
   const nc=active.filter(f=>catOf(f)===NOCAT).length;
   if(nc)o.push(['c:'+NOCAT,cnt(NOCAT,nc)]);
   const todo=missingFoods().length;
@@ -447,7 +456,7 @@ function renderList(sel,q){
   const r=listFor(sel,q);let h='';
   h+=r.models.map(m=>`<div class="row one"><div class="main" data-m="${m.id}"><span class="name">${esc(m.nom)}</span><span class="tag">${T('repas type','типовой')}</span></div><span class="kc">${nf(sum(m.items).k)} ${KCAL}</span></div>`).join('');
   if(r.grouped&&!q){
-    const groups=[...S.cats,NOCAT].map(c=>[c,r.foods.filter(f=>catOf(f)===c)]).filter(x=>x[1].length);
+    const groups=[...new Set([...S.cats.filter(c=>norm(c)!==norm(PREPS)),PREPS,NOCAT])].map(c=>[c,r.foods.filter(f=>catOf(f)===c)]).filter(x=>x[1].length);
     h+=groups.map(([c,fs])=>`<div class="row sep">${esc(c)}</div>`+fs.map(f=>foodRow(f,sel.ctx)).join('')).join('');
   }else h+=r.foods.map(f=>foodRow(f,sel.ctx)).join('');
   if(!r.models.length&&!r.foods.length)h+=`<div class="row muted">${q?T('Rien trouvé pour « '+esc(q)+' ».','Ничего не найдено: «'+esc(q)+'».'):sel.v==='arch'?T('Aucun aliment archivé.','В архиве пусто.'):sel.v==='todo'?T('Tous vos aliments sont complets.','Все продукты заполнены.'):T('Aucun aliment ici pour l\'instant.','Здесь пока нет продуктов.')}</div>`;
@@ -471,7 +480,9 @@ function wirePick(root,sel,redraw,refill,onSearchFocus){
 /* ================= ACCUEIL ================= */
 function home(){
   app.className='';
-  const lw=lastWeight(),remindW=lw&&lw.date<=addDays(todayIso(),-7);
+  /* rappel de pesée : pas la nuit (seulement à partir de 5 h), avec le vrai nombre de jours */
+  const lw=lastWeight(),remindW=lw&&lw.date<=addDays(todayIso(),-7)&&new Date().getHours()>=5;
+  const nd=lw?Math.round((parse(todayIso())-parse(lw.date))/864e5):0,ruD=n=>n%10===1&&n%100!==11?'день':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'дня':'дней';
   app.innerHTML=`<div class="cover"><div class="logo">${ic.fork}</div><div class="title">NutriNote</div>
     <p class="slogan l1">${T('Noter votre alimentation','Дневник питания')}</p><p class="slogan">${T('Export intégré pour analyse par une IA','Встроенный экспорт для анализа с помощью ИИ')}</p></div>
   <div class="bigs">
@@ -479,7 +490,7 @@ function home(){
     <button id="bAlim">${ic.book}${T('Mes aliments','Мои продукты')}</button>
     <button id="bRepas">${ic.cal}${T('Mes repas','Мои приёмы пищи')}</button>
   </div>
-  ${remindW?`<div class="remind"><span>${T('Une semaine depuis votre dernière pesée.','Прошла неделя с последнего взвешивания.')}</span><button class="btn small" id="bW">${T('Noter mon poids','Записать вес')}</button></div>`:''}
+  ${remindW?`<div class="remind"><span>${T(nd+' jours depuis votre dernière pesée.',nd+' '+ruD(nd)+' с последнего взвешивания.')}</span><button class="btn small" id="bW">${T('Noter mon poids','Записать вес')}</button></div>`:''}
   <div style="height:90px"></div>
   <div class="dock"><div class="in">
     <button data-v="analyse">${ic.ai}${T('Analyse','Анализ')}</button>
@@ -557,13 +568,13 @@ function drawBasket(){
   };
 }
 /* note libre, lever, coucher : une ligne datée, hors calcul, placée avec les repas dans l'ordre de l'heure */
-const evtChips=()=>`<div class="chips"><button data-ev="note">${T('+ Note','+ Заметка')}</button>${S.profile.sommeil?`<button data-ev="lever">${T('+ Lever','+ Подъём')}</button><button data-ev="coucher">${T('+ Coucher','+ Отбой')}</button>`:''}</div>`;
+const evtChips=()=>(S.profile.notes||S.profile.sommeil)?`<div class="chips">${S.profile.notes?`<button data-ev="note">${T('+ Note','+ Заметка')}</button>`:''}${S.profile.sommeil?`<button data-ev="lever">${T('+ Lever','+ Подъём')}</button><button data-ev="coucher">${T('+ Coucher','+ Отбой')}</button>`:''}</div>`:'';
 function evtSheet(kind,date,time,after,ex){
   const isNote=kind==='note';
   const bg=overlay('',`<div class="sheet"><h3>${ex?T('Modifier : ','Изменить: '):''}${EVT[kind]}</h3>
     ${isNote?'<p class="muted" style="margin:4px 0 0">'+T('Quelques mots, hors calcul : « 2 h de vélo », « un peu de fièvre »… Ils partent dans l\'export pour une IA.','Несколько слов, без подсчётов: «2 часа на велосипеде», «небольшая температура»… Они попадут в экспорт для ИИ.')+'</p>':''}
     <div class="headgrid" style="margin-top:10px"><input type="date" id="eDate" value="${date}" max="${todayIso()}" aria-label="${T('Date','Дата')}"><input type="time" id="eTime" value="${time||''}" aria-label="${T('Heure','Время')}"></div>
-    ${isNote?`<textarea id="eTxt" rows="4" maxlength="500" placeholder="${T('Votre note','Ваша заметка')}">${esc(ex?ex.text:'')}</textarea>`:''}
+    ${isNote?`<textarea id="eTxt" rows="6" maxlength="2000" placeholder="${T('Votre note','Ваша заметка')}">${esc(ex?ex.text:'')}</textarea>`:''}
     <div class="grid2" style="margin-top:10px"><button class="btn ghost" id="eX">${T('Annuler','Отмена')}</button><button class="btn" id="eOk">${T('Enregistrer','Сохранить')}</button></div></div>`);
   const t=bg.querySelector('#eTxt');if(t)setTimeout(()=>t.focus(),30);
   bg.querySelector('#eX').onclick=()=>bg.remove();
@@ -652,7 +663,7 @@ function fiche(){
   ${f&&f.arch?`<div class="banner">${T('Cet aliment est archivé : il n\'est plus proposé dans « Noter un repas ».','Продукт в архиве: он больше не предлагается при записи.')}</div>`:''}
   ${f?'':`<div class="seg"><button data-p="0" aria-pressed="${!fd.isPrep}">${T('Aliment simple','Продукт')}</button><button data-p="1" aria-pressed="${fd.isPrep}">${T('Préparation','Домашнее блюдо')}</button></div>`}
   <label for="fn">${T('Nom','Название')}</label><input id="fn" value="${esc(fd.nom)}" placeholder="${fd.isPrep?T('ex. Yaourt maison','напр. Домашний йогурт'):T('ex. Comté','напр. Творог 5 %')}" autocomplete="off" maxlength="60">
-  <label>${T('Catégorie','Категория')}</label><button class="field ${fd.cat?'':'empty'}" id="fc">${fd.cat?esc(fd.cat):T('Choisissez une catégorie','Выберите категорию')}<span class="chev">▼</span></button>
+  ${fd.isPrep?'':`<label>${T('Catégorie','Категория')}</label><button class="field ${fd.cat?'':'empty'}" id="fc">${fd.cat?esc(fd.cat):T('Choisissez une catégorie','Выберите категорию')}<span class="chev">▼</span></button>`}
   ${fd.isPrep?prepHtml:`<div class="grid2"><div><label>${T('Calories','Калории')} ${P100}</label>${nfield('fk',fd.kcal,KCAL,FILL)}</div>${TR().map(k=>`<div><label>${NUTS[k].label} ${P100}</label>${nfield('fn_'+k,k==='prot'?fd.prot:(fd.n[k]==null?null:fd.n[k]),NUTS[k].unit,FILL)}</div>`).join('')}</div>
   <div class="grid2"><div><label>${T('Portion (facultatif)','Порция (необязательно)')}</label>${nfield('fpo',fd.portion,T('g','г'),'—')}</div><div><label for="fpn">${T('Nom de la portion','Название порции')}</label><input id="fpn" value="${esc(fd.portionNom||'')}" placeholder="${T('ex. tranche','напр. ломтик')}" autocomplete="off" maxlength="40"></div></div>`}
   ${f?`<div class="grid3" style="margin-top:16px"><button class="btn ghost" id="fx">${T('Annuler','Отмена')}</button><button class="btn warn" id="fdel">${T('Supprimer','Удалить')}</button><button class="btn" id="fs">${T('Enregistrer','Сохранить')}</button></div>
@@ -672,7 +683,7 @@ function fiche(){
   app.querySelectorAll('[data-rr]').forEach(b=>b.onclick=()=>{keep();fd.rec.splice(+b.dataset.rr,1);fiche()});
   app.querySelectorAll('[data-rq]').forEach(b=>b.onclick=()=>{keep();const l=fd.rec[+b.dataset.rq],src=food(l.foodId)||{nom:l.nom,kcal:l.kcal,prot:l.prot};
     qtyPad(src,l.g,g=>{l.g=g;fiche()},{noEdit:true,okLabel:T('Valider','OK')})});
-  $('#fc').onclick=()=>{keep();catPicker()};
+  const fcb=$('#fc');if(fcb)fcb.onclick=()=>{keep();catPicker()};
   $('#fx').onclick=()=>navBack();
   $('#fs').onclick=()=>{
     keep();const nom=fd.nom.trim();if(!nom){toast(T('Indiquez un nom.','Введите название.'));$('#fn').focus();return}
@@ -685,7 +696,7 @@ function fiche(){
       const portion=fd.parts?Math.round(poids/fd.parts*10)/10:null;
       const per100=v=>v==null?null:Math.round(v/poids*1000)/10,n={};
       NKEYS.filter(k=>k!=='prot').forEach(k=>{const v=per100(recN(k));if(v!=null)n[k]=v});
-      data={nom,cat:fd.cat||null,kcal:Math.round(t.k/poids*1000)/10,prot:per100(recN('prot')),n,portion,portionNom:portion?(fd.portionNom.trim()||T('part','порция')):null,
+      data={nom,cat:f?f.cat||null:null,kcal:Math.round(t.k/poids*1000)/10,prot:per100(recN('prot')),n,portion,portionNom:portion?(fd.portionNom.trim()||T('part','порция')):null,
         recette:{items:fd.rec.map(l=>({...l})),poids:fd.poids||null,n:fd.parts||null}};
     }else{
       if(fd.kcal==null){toast(T('Indiquez les calories.','Укажите калории.'));return}
@@ -876,6 +887,8 @@ function typeSheet(m){
 
 /* ================= ANALYSE (export pour une IA) ================= */
 let anaPer='7j',anaFrom=null,anaTo=null;
+/* notes personnelles : jamais envoyées sans que la case soit cochée ; décochée à chaque ouverture de l'appli */
+let anaNotes=false;
 function periodRange(){
   const TD=todayIso();
   if(anaPer==='7j')return [addDays(TD,-6),TD];
@@ -886,7 +899,7 @@ function periodRange(){
 }
 function analyseText(){
   const [a,b]=periodRange(),G=S.goals,P=S.profile,L=[],q=(store.get(KEY+'.question')||'').trim(),tr=TR();
-  const ms=S.meals.filter(m=>m.date>=a&&m.date<=b),evs=S.notes.filter(e=>e.date>=a&&e.date<=b),ws=S.weights.filter(w=>w.date>=a&&w.date<=b).sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
+  const ms=S.meals.filter(m=>m.date>=a&&m.date<=b),evs=S.notes.filter(e=>e.date>=a&&e.date<=b&&(anaNotes||e.kind!=='note')),ws=S.weights.filter(w=>w.date>=a&&w.date<=b).sort((x,y)=>(x.date+x.time).localeCompare(y.date+y.time));
   /* « 13 g de protéines » / « 13 г белка » */
   const of=(k,v)=>nv(k,v)+' '+NUTS[k].unit+' '+T('de ','')+NUTS[k].gen;
   const nl=items=>tr.map(k=>{const s=sumN(items,k);return of(k,s.v)+(s.miss?T(' (incomplet)',' (неполные данные)'):'')});
@@ -924,7 +937,7 @@ function analyseText(){
 }
 function analyse(){
   app.className='';
-  const [a,b]=periodRange(),n=S.meals.filter(m=>m.date>=a&&m.date<=b).length;
+  const [a,b]=periodRange(),n=S.meals.filter(m=>m.date>=a&&m.date<=b).length,hasN=S.notes.some(e=>e.kind==='note'&&e.date>=a&&e.date<=b);
   app.innerHTML=top(T('Analyse','Анализ'))+`
    <p class="muted" style="margin-top:0">${T('Préparez votre carnet pour une IA (ChatGPT, Claude, Gemini…). Rien ne part tout seul : vous copiez, puis vous collez dans la conversation de votre choix.','Подготовьте дневник для ИИ (ChatGPT, Claude, Gemini, GigaChat…). Ничего не отправляется само: вы копируете текст и вставляете его в выбранный чат.')}</p>
    <label for="per">${T('Période','Период')}</label><select id="per">
@@ -933,6 +946,7 @@ function analyse(){
    <p class="muted">${T('Du '+longDate(a).toLowerCase()+' au '+longDate(b).toLowerCase()+' · '+n+' repas.','С '+dayMonth(a)+' по '+dayMonth(b)+' · приёмов пищи: '+n+'.')}</p>
    <label for="qq">${T('Ma situation, ma question (facultatif)','Моя ситуация, мой вопрос (необязательно)')}</label>
    <textarea id="qq" rows="4" maxlength="800" placeholder="${T('ex. J\'ai 72 ans, je prends un anticoagulant. Je voudrais perdre 5 kg sans manquer de protéines. Que faut-il changer ?','напр. Мне 65 лет, у меня повышенное давление. Хочу похудеть на 5 кг без недостатка белка. Что изменить?')}">${esc(store.get(KEY+'.question')||'')}</textarea>
+   ${hasN?`<label class="chk" style="padding:10px 0 0;border:0"><input type="checkbox" id="anN" ${anaNotes?'checked':''}><span>${T('Envoyer aussi mes notes personnelles','Отправить и мои личные заметки')}</span></label>`:''}
    <button class="btn wide" id="copyA" style="margin-top:12px">${T('Copier pour une IA','Скопировать для ИИ')}</button>
    ${navigator.share?'<button class="btn ghost wide" id="shareA" style="margin-top:8px">'+T('Partager vers une appli…','Отправить в приложение…')+'</button>':''}
    <div id="aout"></div>`;
@@ -940,6 +954,7 @@ function analyse(){
   $('#per').onchange=e=>{anaPer=e.target.value;analyse()};
   const pa=$('#pa'),pb=$('#pb');if(pa){pa.onchange=e=>{anaFrom=e.target.value;analyse()};pb.onchange=e=>{anaTo=e.target.value;analyse()}}
   $('#qq').oninput=e=>store.set(KEY+'.question',e.target.value);
+  const an=$('#anN');if(an)an.onchange=e=>{anaNotes=e.target.checked;$('#aout').innerHTML=''};
   $('#copyA').onclick=()=>{const t=analyseText();
     const show=ok=>{$('#aout').innerHTML=ok?`<div class="okbox">${T('Copié. Ouvrez votre IA et collez le texte dans la conversation.','Скопировано. Откройте ИИ и вставьте текст в чат.')}</div>`:`<p class="muted">${T('Sélectionnez le texte ci-dessous et copiez-le :','Выделите текст ниже и скопируйте его:')}</p><textarea rows="10" readonly id="atx">${esc(t)}</textarea>`;if(!ok){const x=$('#atx');x.focus();x.select()}};
     try{navigator.clipboard.writeText(t).then(()=>show(true),()=>show(false))}catch(e){show(false)}};
@@ -1004,7 +1019,8 @@ function sauvegarde(){
 
 /* ================= PROFIL : moi, objectif de calories, suivis en plus, poids ================= */
 const ACT=[[1.2,T('Sédentaire','Сидячая'),T('assis la plupart du temps','почти всё время сидя')],[1.375,T('Légère','Лёгкая'),T('marche, tâches du quotidien','прогулки, домашние дела')],[1.55,T('Modérée','Средняя'),T('sport 3 à 5 fois par semaine','спорт 3–5 раз в неделю')],[1.725,T('Très active','Высокая'),T('sport intense ou métier physique','интенсивный спорт или физический труд')]];
-const LVL={leger:[250,T('Léger','Мягкая')],normal:[500,T('Normal','Обычная')],strict:[750,T('Strict','Строгая')]};
+/* les noms parlent de l'effort (la clé « strict » reste dans les données des carnets existants) */
+const LVL={leger:[250,T('Léger','Лёгкая')],normal:[500,T('Moyen','Средняя')],strict:[750,T('Soutenu','Усиленная')]};
 const NREP={prot:T('Repère : 1 g par kilo de poids cible (1,2 g après 65 ans).','Ориентир: 1 г на кг целевого веса (1,2 г после 65 лет).'),sel:T('Repère de l\'OMS : moins de 5 g par jour.','Ориентир ВОЗ: менее 5 г в день.'),
   sucres:T('Repère : moins de 50 g par jour (l\'OMS conseille de limiter les sucres ajoutés à 10 % des calories).','Ориентир: менее 50 г в день (ВОЗ советует ограничить добавленный сахар 10 % калорий).'),fibres:T('Repère : environ 30 g par jour.','Ориентир: около 30 г в день.'),
   gluc:T('Pas de valeur proposée : à fixer avec votre médecin ou votre diététicien.','Значение не предлагается: определите его с врачом или диетологом.'),pot:T('Pas de valeur proposée : à fixer avec votre médecin.','Значение не предлагается: определите его с врачом.')};
@@ -1016,11 +1032,15 @@ function calcKcal(){
   const r10=v=>Math.round(v/10)*10,lose=p.cible&&p.cible<w.kg,gain=p.cible&&p.cible>w.kg,levels={};
   if(lose)Object.entries(LVL).forEach(([k,[d]])=>{const raw=tdee-d,kc=r10(Math.max(raw,floor)),def=tdee-kc;
     levels[k]={kcal:kc,raised:raw<floor,perWeek:def*7/7700,weeks:def>0?(w.kg-p.cible)*7700/(def*7):null}});
-  return {bmr,tdee,floor:r10(floor),age,w,lose,gain,levels,kcal:lose?levels[p.niveau].kcal:r10(tdee)};
+  /* le niveau le plus fort n'est pas proposé quand il est remonté au seuil (souvent avec l'âge) : il ne ferait que répéter le niveau moyen */
+  const hidden=lose&&levels.strict.raised,niv=hidden&&p.niveau==='strict'?'normal':p.niveau;
+  if(hidden)delete levels.strict;
+  return {bmr,tdee,floor:r10(floor),age,w,lose,gain,levels,hidden,niv,kcal:lose?levels[niv].kcal:r10(tdee)};
 }
 /* l'objectif de calories n'est pas laissé au choix libre : c'est l'un des trois niveaux calculés, ou rien tant que le profil est incomplet */
 function applyCalc(){
   let ch=false;const c=calcKcal(),v=c?c.kcal:null;if(S.goals.kcal!==v){S.goals.kcal=v;ch=true}
+  if(c&&c.niv!==S.profile.niveau){S.profile.niveau=c.niv;ch=true}
   /* objectif de protéines encore vide : repère de 1 g par kilo (1,2 g après 65 ans) dès que le poids est connu */
   const w=lastWeight(),base=S.profile.cible||(w&&w.kg),a=ageOf(S.profile);
   if(S.goals.prot==null&&base){S.goals.prot=Math.round(base*(a&&a>=65?1.2:1));ch=true}
@@ -1029,7 +1049,7 @@ function applyCalc(){
 function addWeight(after){
   const w=lastWeight();
   /* la date peut être changée pour noter une pesée faite un autre jour ; l'heure n'est gardée que pour aujourd'hui */
-  numpad({title:T('Mon poids','Мой вес'),sub:T('De préférence le matin, à jeun. Changez la date pour une pesée d\'un autre jour.','Лучше утром, натощак. Для другого дня измените дату.'),value:w?w.kg:null,unit:KG,date:todayIso(),okLabel:T('Enregistrer','Сохранить'),done:(v,d)=>{
+  numpad({title:T('Mon poids','Мой вес'),sub:T('Au réveil, après avoir dormi normalement, à jeun. Changez la date pour une pesée d\'un autre jour.','Сразу после сна, если вы нормально выспались, натощак. Для другого дня измените дату.'),value:w?w.kg:null,unit:KG,date:todayIso(),okLabel:T('Enregistrer','Сохранить'),done:(v,d)=>{
     if(v<30||v>300){toast(T('Poids non valable : ','Неверный вес: ')+nf1(v)+' '+KG+'.');return}
     const today=d===todayIso();
     S.weights.push({id:uid(),date:d,time:today?hm():'',kg:v});applyCalc();save();toast(T('Poids noté : ','Вес записан: ')+nf1(v)+' '+KG+(today?'':', '+T(longDate(d).toLowerCase(),dayMonth(d)))+'.');after&&after()}});
@@ -1060,10 +1080,11 @@ function profil(){
   let calc='';
   if(!c)calc=`<p class="muted" style="margin-top:0">${T('Indiquez votre sexe, votre année de naissance, votre taille, votre poids et votre activité : NutriNote vous proposera un apport de calories par jour.','Укажите пол, год рождения, рост, вес и активность: NutriNote предложит норму калорий в день.')}</p>`;
   else{
-    const L=c.lose?c.levels[p.niveau]:null;
+    const L=c.lose?c.levels[c.niv]:null;
     /* toucher un niveau = le prendre comme objectif */
-    if(c.lose)calc+=`<div class="lvl">${Object.entries(LVL).map(([k,[d,l]])=>{const x=c.levels[k];
-      return `<button data-lv="${k}" aria-pressed="${p.niveau===k}">${l}${k==='normal'?T(' (conseillé)',' (рекомендуется)'):''}<b>${nf(x.kcal)} ${KCAL}</b>≈ ${nf1(x.perWeek)} ${KG}${T(' / sem.',' в нед.')}${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>'+T('limité au seuil','ограничено порогом')+'</i>':''}</button>`}).join('')}</div>`;
+    if(c.lose)calc+=`<div class="lvl">${Object.entries(LVL).filter(([k])=>c.levels[k]).map(([k,[d,l]])=>{const x=c.levels[k];
+      return `<button data-lv="${k}" aria-pressed="${c.niv===k}">${l}${k==='normal'?T(' (conseillé)',' (рекомендуется)'):''}<b>${nf(x.kcal)} ${KCAL}</b>≈ ${nf1(x.perWeek)} ${KG}${T(' / sem.',' в нед.')}${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>'+T('limité au seuil','ограничено порогом')+'</i>':''}</button>`}).join('')}</div>`+
+      (c.hidden?`<p class="muted">${T(`Le niveau ${LVL.strict[1]} n'est pas proposé : il vous ferait descendre sous votre seuil de ${nf(c.floor)} kcal par jour.`,`Уровень «${LVL.strict[1]}» не предлагается: с ним вы опустились бы ниже своего порога в ${nf(c.floor)} ккал в день.`)}</p>`:'');
     calc+=`<div class="note">${T(`Votre corps dépense au repos environ <b>${nf(c.bmr)} kcal</b> par jour (formule de Mifflin-St Jeor) ; avec votre activité, environ <b>${nf(c.tdee)} kcal</b>.`,`В покое ваш организм тратит около <b>${nf(c.bmr)} ккал</b> в день (формула Миффлина — Сан Жеора); с учётом активности — около <b>${nf(c.tdee)} ккал</b>.`)}
       ${c.lose?T(`Pour perdre environ ${nf1(L.perWeek)} kg par semaine, NutriNote propose <b>${nf(L.kcal)} kcal</b> par jour${L.weeks?', soit votre poids cible vers '+until(L.weeks):''}.${L.raised?' Cet objectif a été limité pour ne pas descendre sous le seuil.':''}`,
           `Чтобы худеть примерно на ${nf1(L.perWeek)} кг в неделю, NutriNote предлагает <b>${nf(L.kcal)} ккал</b> в день${L.weeks?'; целевой вес — примерно '+until(L.weeks):''}.${L.raised?' Цель ограничена, чтобы не опускаться ниже порога.':''}`)
@@ -1074,7 +1095,7 @@ function profil(){
   }
   /* avec un poids cible plus bas, le titre invite à choisir parmi les trois niveaux ; sinon il n'y a rien à choisir */
   const kcalCard=`<div class="card"><h2 style="margin-top:0">${c&&c.lose?T('Choisissez votre objectif','Выберите цель'):T('Mon objectif de calories','Моя норма калорий')}</h2>${calc}
-    ${c?`<div style="margin-top:10px">${T('Mon objectif','Моя цель')}${SEP}<span class="big" style="color:var(--kcal)">${nf(c.kcal)}</span> <span class="unit">${KPD} (${c.lose?LVL[p.niveau][1].toLowerCase():T('garder mon poids','сохранить вес')})</span></div>`:''}
+    ${c?`<div style="margin-top:18px">${T('Mon objectif','Моя цель')}${SEP}<span class="big" style="color:var(--kcal)">${nf(c.kcal)}</span> <span class="unit">${KPD} (${c.lose?LVL[c.niv][1].toLowerCase():T('garder mon poids','сохранить вес')})</span></div>`:''}
     <p class="muted" style="margin-bottom:0">${T('En cas de traitement ou de maladie, demandez l\'avis de votre médecin.','При лечении или болезни посоветуйтесь с врачом.')}</p></div>`;
   const nutRow=k=>{const on=tr.includes(k),g=S.goals[k];
     return `<label class="chk"><input type="checkbox" data-nut="${k}" ${on?'checked':''}><span>${NUTS[k].label}<span class="sub">${on?NREP[k]:NUTS[k].dir==='max'?T('à ne pas dépasser','не превышать'):T('à atteindre','достигать')}</span></span></label>
@@ -1094,12 +1115,13 @@ function profil(){
     <div class="list">${NKEYS.map(nutRow).join('')}</div>
     ${todo?`<button class="btn ghost wide" id="todo" style="margin-top:8px">${T('Compléter mes aliments','Дополнить продукты')} (${todo})</button>`:''}</div>
    <div class="card"><label class="chk" style="padding:0 0 6px"><input type="checkbox" id="slp" ${p.sommeil?'checked':''}><span><b>${T('Mon sommeil','Мой сон')}</b><span class="sub">${T('Le manque de sommeil augmente l\'appétit. Cochez cette case pour noter l\'heure de votre lever et de votre coucher avec vos repas : une IA pourra faire le lien avec ce que vous mangez.','Недосып усиливает аппетит. Отметьте, чтобы записывать время подъёма и отбоя рядом с приёмами пищи: ИИ сможет связать сон с питанием.')}</span></span></label></div>
+   <div class="card"><label class="chk" style="padding:0 0 6px"><input type="checkbox" id="nts" ${p.notes?'checked':''}><span><b>${T('Mes notes personnelles','Мои личные заметки')}</b><span class="sub">${T('Cochez cette case pour écrire quelques mots datés entre vos repas, comme un petit journal. Elles restent sur votre téléphone : l\'export pour une IA ne les envoie que si vous le demandez.','Отметьте, чтобы записывать между приёмами пищи несколько слов с датой, как в дневнике. Они остаются в телефоне: в экспорт для ИИ они попадут, только если вы этого захотите.')}</span></span></label></div>
    <div class="card"><h2 style="margin-top:0">${T('Mon poids','Мой вес')}</h2>
     ${w?`<p style="margin:0">${T('Dernière pesée','Последнее взвешивание')}${SEP}<b>${nf1(w.kg)} ${KG}</b>, ${T(longDate(w.date).toLowerCase(),dayMonth(w.date))}.</p>`:'<p class="muted" style="margin:0">'+T('Aucune pesée pour l\'instant.','Взвешиваний пока нет.')+'</p>'}
     <button class="btn wide" id="addW" style="margin-top:10px">${T('+ Noter mon poids','+ Записать вес')}</button>
-    <p class="muted">${T('De préférence le matin, à jeun. Un rappel s\'affiche sur l\'accueil une semaine après votre dernière pesée.','Лучше утром, натощак. Через неделю после последнего взвешивания на главном экране появится напоминание.')}</p>
+    <p class="muted">${T('Au réveil, après avoir dormi normalement, à jeun : une pesée après une nuit courte ou blanche trompe. Un rappel s\'affiche sur l\'accueil une semaine après votre dernière pesée.','Сразу после сна, если вы нормально выспались, натощак: после короткой или бессонной ночи весы обманывают. Через неделю после последнего взвешивания на главном экране появится напоминание.')}</p>
     ${weightChart()}
-    ${S.weights.length?`<div class="list" style="margin-top:8px">${[...S.weights].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,10).map(x=>`<div class="row"><div class="main" style="cursor:default">${nf1(x.kg)} ${KG} <span class="muted">· ${T(longDate(x.date).toLowerCase(),dayMonth(x.date))}${x.time?T(' à ',', ')+fmtT(x.time):''}</span></div><button class="ico del" data-dw="${x.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>`).join('')}</div>`:''}</div>
+    ${S.weights.length?`<div class="list" style="margin-top:8px">${[...S.weights].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,10).reverse().map(x=>`<div class="row"><div class="main" style="cursor:default">${nf1(x.kg)} ${KG} <span class="muted">· ${T(longDate(x.date).toLowerCase(),dayMonth(x.date))}${x.time?T(' à ',', ')+fmtT(x.time):''}</span></div><button class="ico del" data-dw="${x.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>`).join('')}</div>`:''}</div>
    <div class="card"><label for="lang">${T('Langue','Язык')}</label><select id="lang"><option value="fr" ${LANG==='fr'?'selected':''}>Français</option><option value="ru" ${LANG==='ru'?'selected':''}>Русский</option></select></div>`;
   bind();window.scrollTo(0,sy);
   const set=(k,v)=>{p[k]=v;applyCalc();save();profil()};
@@ -1126,6 +1148,8 @@ function profil(){
       done:v=>{S.goals[k]=v>0?v:null;save();profil()}})});
   const td=$('#todo');if(td)td.onclick=()=>{alimSel={ctx:'aliments',v:'todo',search:false,q:''};go('aliments')};
   $('#slp').onchange=e=>{p.sommeil=e.target.checked;save();profil()};
+  /* décocher n'efface aucune note : elles restent visibles dans Mes repas et dans la sauvegarde */
+  $('#nts').onchange=e=>{p.notes=e.target.checked;save();profil()};
   $('#addW').onclick=()=>addWeight(profil);
   app.querySelectorAll('[data-dw]').forEach(b=>b.onclick=()=>{const x=S.weights.find(z=>z.id===b.dataset.dw);
     ask(T('Supprimer cette pesée ?','Удалить это взвешивание?'),nf1(x.kg)+' '+KG+', '+T(longDate(x.date).toLowerCase(),dayMonth(x.date))+'.',[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.weights=S.weights.filter(z=>z!==x);applyCalc();save();profil()}},{label:T('Non','Нет'),cls:'ghost'}])});
@@ -1141,9 +1165,9 @@ function aide(){
    <li><b>Mes aliments</b> : créer un aliment ou une préparation (recette maison), corriger une fiche, archiver un aliment que vous n'utilisez plus (bouton « Archiver » sur sa fiche ; il reste dans « Archivés »).</li>
    <li><b>Mes repas</b> : le résultat du jour ou de la semaine. Le crayon rouvre un repas pour le corriger. Touchez la date pour ouvrir le calendrier.</li>
    <li><b>Reprendre un repas noté</b> (dans la liste des catégories de Noter) : choisissez un repas d'un autre jour, ses aliments s'ajoutent au repas en cours. Pratique pour des restes.</li>
-   <li><b>+ Note</b> (dans Noter ou Mes repas) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). Avec la case Sommeil du profil : <b>+ Lever</b> et <b>+ Coucher</b>.</li>
-   <li><b>Profil</b> : vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, et votre poids (de préférence le matin, à jeun ; changez la date pour une pesée d'un autre jour). Tout s'enregistre au fur et à mesure. Un nutriment ajouté se saisit dans vos aliments : voir Mes aliments › À compléter. La langue se choisit en bas du Profil.</li>
-   <li><b>Analyse</b> : copiez votre carnet pour l'IA de votre choix, avec votre question.</li>
+   <li><b>+ Note</b> (dans Noter ou Mes repas, avec la case Notes personnelles du profil) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). Avec la case Sommeil du profil : <b>+ Lever</b> et <b>+ Coucher</b>.</li>
+   <li><b>Profil</b> : vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, et votre poids (au réveil, après avoir dormi normalement, à jeun ; changez la date pour une pesée d'un autre jour). Tout s'enregistre au fur et à mesure. Un nutriment ajouté se saisit dans vos aliments : voir Mes aliments › À compléter. La langue se choisit en bas du Profil.</li>
+   <li><b>Analyse</b> : copiez votre carnet pour l'IA de votre choix, avec votre question. Vos notes personnelles ne sont envoyées que si vous cochez la case.</li>
    <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li>`,`
    <li><b>Записать приём пищи</b>: выберите категорию, нажмите на продукт, введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. Затем «Сохранить».</li>
    <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет калории и нутриенты продукта.</li>
@@ -1151,9 +1175,9 @@ function aide(){
    <li><b>Мои продукты</b>: создать продукт или домашнее блюдо (рецепт), исправить карточку, убрать в архив продукт, который вы больше не покупаете (кнопка «В архив» в его карточке; он остаётся в списке «В архиве»).</li>
    <li><b>Мои приёмы пищи</b>: итог за день или за неделю. Карандаш открывает запись для исправления. Нажмите на дату, чтобы открыть календарь.</li>
    <li><b>Повторить записанный приём пищи</b> (в списке категорий при записи): выберите приём пищи другого дня, его продукты добавятся в текущий. Удобно для остатков.</li>
-   <li><b>+ Заметка</b> (при записи или в «Мои приёмы пищи»): несколько слов с датой, без подсчётов («2 часа на велосипеде», «небольшая температура»). Если в Профиле отмечен сон: <b>+ Подъём</b> и <b>+ Отбой</b>.</li>
-   <li><b>Профиль</b>: ваши данные для расчёта нормы калорий, нутриенты для отслеживания (не более 3), сон и вес (лучше утром, натощак; для взвешивания в другой день измените дату). Всё сохраняется сразу. Значения нового нутриента вводятся в продуктах: см. Мои продукты › Дополнить. Язык выбирается внизу Профиля.</li>
-   <li><b>Анализ</b>: скопируйте дневник для любого ИИ вместе со своим вопросом.</li>
+   <li><b>+ Заметка</b> (при записи или в «Мои приёмы пищи», если в Профиле отмечены личные заметки): несколько слов с датой, без подсчётов («2 часа на велосипеде», «небольшая температура»). Если в Профиле отмечен сон: <b>+ Подъём</b> и <b>+ Отбой</b>.</li>
+   <li><b>Профиль</b>: ваши данные для расчёта нормы калорий, нутриенты для отслеживания (не более 3), сон и вес (сразу после сна, если вы нормально выспались, натощак; для взвешивания в другой день измените дату). Всё сохраняется сразу. Значения нового нутриента вводятся в продуктах: см. Мои продукты › Дополнить. Язык выбирается внизу Профиля.</li>
+   <li><b>Анализ</b>: скопируйте дневник для любого ИИ вместе со своим вопросом. Личные заметки отправляются, только если вы отметите это.</li>
    <li><b>Резервная копия</b>: регулярно сохраняйте файл. Данные остаются на этом устройстве, никуда не отправляются.</li>`)}</ul></div>`;
   bind();
 }
