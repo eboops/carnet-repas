@@ -411,7 +411,7 @@ addEventListener('popstate',()=>{
   doBack();
 });
 history.replaceState({v:'home'},'');
-const VIEWNAME={home:T('Accueil','Главная'),menu:T('Noter','Записать'),noter:T('Mon repas','Мой приём пищи'),typeEdit:T('Repas type','Типовой'),aliments:T('Aliments','Продукты'),repas:T('Mon suivi','Мой дневник'),fiche:T('Fiche','Карточка'),types:T('Repas types','Типовые'),profil:T('Profil','Профиль')};
+const VIEWNAME={home:T('Accueil','Главная'),menu:T('Noter','Записать'),noter:T('Mon repas','Мой приём пищи'),typeEdit:T('Repas type','Типовое меню'),aliments:T('Aliments','Продукты'),repas:T('Mon suivi','Мой дневник'),fiche:T('Fiche','Карточка'),types:T('Repas types','Назад'),profil:T('Profil','Профиль')};
 function toast(t){clearToasts();const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2600)}
 const top=title=>`<div class="top"><button class="back" data-back aria-label="${T('Retour','Назад')}"><b>‹</b>${VIEWNAME[back[back.length-1]]||VIEWNAME.home}</button><h1>${title}</h1></div>`;
 function bind(){app.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>navBack())}
@@ -525,7 +525,7 @@ function foodRow(f,ctx){
 }
 function renderList(sel,q){
   const r=listFor(sel,q);let h='';
-  h+=r.models.map(m=>`<div class="row one"><div class="main" data-m="${m.id}"><span class="name">${esc(m.nom)}</span><span class="tag">${T('repas type','типовой')}</span></div><span class="kc">${nf(sum(m.items).k)} ${KCAL}</span></div>`).join('');
+  h+=r.models.map(m=>`<div class="row one"><div class="main" data-m="${m.id}"><span class="name">${esc(m.nom)}</span><span class="tag">${T('repas type','типовое меню')}</span></div><span class="kc">${nf(sum(m.items).k)} ${KCAL}</span></div>`).join('');
   if(r.grouped&&!q){
     const groups=[...new Set([...S.cats.filter(c=>norm(c)!==norm(PREPS)),PREPS,NOCAT])].map(c=>[c,r.foods.filter(f=>catOf(f)===c)]).filter(x=>x[1].length);
     h+=groups.map(([c,fs])=>`<div class="row sep">${esc(c)}</div>`+fs.map(f=>foodRow(f,sel.ctx)).join('')).join('');
@@ -665,14 +665,14 @@ function fillNoterList(){
 function drawBasket(){
   const d=draft,b=$('#basket');if(!b||!d)return;const t=sum(d.items);
   const items=d.items.slice().reverse();
-  b.innerHTML=`<div class="bh"><b>${T('Repas en cours','Текущий приём пищи')}${d.items.length?' · '+d.items.length:''}</b>${d.items.length?'<button class="lnk" id="keepType">'+T('☆ Garder comme repas type','☆ Сохранить как типовой')+'</button>':''}</div>
+  b.innerHTML=`<div class="bh"><b>${T('Repas en cours','Текущий приём пищи')}${d.items.length?' · '+d.items.length:''}</b>${d.items.length?'<button class="lnk" id="keepType">'+T('☆ Garder comme repas type','☆ Сохранить как типовое меню')+'</button>':''}</div>
    <div class="items">${items.length?items.map(l=>{const f=food(l.foodId);return `<div class="row ${d.flash===l.foodId||d.flash==='*'?'flash':''}"><div class="main" data-q="${l.foodId}"><div class="name">${esc(f?f.nom:'?')}</div><div class="vals">${[qty(f,l.g),nf(val(l).k)+' '+KCAL,nlineL(f,l.g)].filter(Boolean).join(' · ')}</div></div><button class="ico" data-q="${l.foodId}" aria-label="${T('Changer la quantité','Изменить количество')}">${ic.pen}</button><button class="ico del" data-rm="${l.foodId}" aria-label="${T('Retirer','Убрать')}">${ic.x}</button></div>`}).join('')
      :'<div class="empty-hint">'+T('Touchez un aliment au-dessus :<br>il s\'ajoute ici.','Нажмите на продукт выше:<br>он появится здесь.')+'</div>'}</div>
    <div class="foot"><div class="tot"><span class="k">${nf(t.k)} ${KCAL}</span>${TR().map(k=>`<span style="color:var(--${k})">${sumTxt(d.items,k)}</span>`).join('')}</div><button class="btn" id="saveMeal" ${d.items.length?'':'disabled'}>${d.editId?T('Enregistrer','Сохранить'):T('Enregistrer le repas','Сохранить')}</button></div>`;
   d.flash=null;
   b.querySelectorAll('[data-rm]').forEach(x=>x.onclick=()=>{d.items=d.items.filter(l=>l.foodId!==x.dataset.rm);saveDraft();drawBasket()});
   b.querySelectorAll('[data-q]').forEach(x=>x.onclick=()=>{const l=d.items.find(l=>l.foodId===x.dataset.q);qtyPad(food(l.foodId),l.g,g=>{l.g=g;saveDraft();drawBasket()})});
-  const kt=$('#keepType');if(kt)kt.onclick=()=>askText(T('Garder comme repas type','Сохранить как типовой'),'',T('Garder','Сохранить'),n=>saveModel(n,d.items),T('ex. Petit-déj habituel','напр. Обычный завтрак'));
+  const kt=$('#keepType');if(kt)kt.onclick=()=>askText(T('Garder comme repas type','Сохранить как типовое меню'),'',T('Garder','Сохранить'),n=>saveModel(n,d.items),T('ex. Petit-déj habituel','напр. Обычный завтрак'));
   $('#saveMeal').onclick=()=>{
     if(!d.items.length)return;
     const data={date:d.date||todayIso(),time:d.time||'',items:d.items.map(l=>({foodId:l.foodId,g:l.g}))};
@@ -724,7 +724,7 @@ function mealPicker(opts){
 function saveModel(nom,items,after){
   const its=items.map(l=>({foodId:l.foodId,g:l.g}));
   const ex=S.models.find(m=>norm(m.nom)===norm(nom));
-  const doIt=()=>{if(ex)ex.items=its;else S.models.push({id:uid(),nom,items:its});save();toast(T('Repas type « '+nom+' » '+(ex?'remplacé':'gardé')+'.','Типовой «'+nom+'» '+(ex?'заменён':'сохранён')+'.'));after&&after()};
+  const doIt=()=>{if(ex)ex.items=its;else S.models.push({id:uid(),nom,items:its});save();toast(T('Repas type « '+nom+' » '+(ex?'remplacé':'gardé')+'.','Типовое меню «'+nom+'» '+(ex?'заменено':'сохранено')+'.'));after&&after()};
   if(ex)ask(T('« '+esc(ex.nom)+' » existe déjà','«'+esc(ex.nom)+'» уже есть'),T('Le remplacer par le contenu actuel du repas ?','Заменить его текущим составом?'),[{label:T('Remplacer','Заменить'),fn:doIt},{label:T('Annuler','Отмена'),cls:'ghost'}]);else doIt();
 }
 
@@ -837,7 +837,7 @@ function fiche(){
     const n=usedMeals(f.id),mods=usedModels(f.id);
     if(!n&&!mods.length){ask(T('Supprimer « '+esc(f.nom)+' » ?','Удалить «'+esc(f.nom)+'»?'),T('Cet aliment n\'est dans aucun repas.','Этого продукта нет ни в одном приёме пищи.'),[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.foods=S.foods.filter(x=>x!==f);save();navBack(()=>toast(T('Supprimé.','Удалено.')))}},{label:T('Non','Нет'),cls:'ghost'}]);return}
     const where=T([n?`dans ${n} repas`:'',mods.length?`dans ${mods.length>1?'les repas types':'le repas type'} « ${mods.map(m=>esc(m.nom)).join(' », « ')} »`:''].filter(Boolean).join(' et '),
-      [n?`в приёмах пищи (${n})`:'',mods.length?`в типовых: «${mods.map(m=>esc(m.nom)).join('», «')}»`:''].filter(Boolean).join(' и '));
+      [n?`в приёмах пищи (${n})`:'',mods.length?`в типовых меню: «${mods.map(m=>esc(m.nom)).join('», «')}»`:''].filter(Boolean).join(' и '));
     ask(T('« '+esc(f.nom)+' » ne peut pas être supprimé','«'+esc(f.nom)+'» нельзя удалить'),T(`Il figure ${where}. Vous pouvez :`,`Он используется ${where}. Можно:`),[
       ...(f.arch?[]:[{label:T('L\'archiver','Убрать в архив'),fn:()=>{f.arch=true;save();navBack(()=>toast(T('Archivé : il n\'est plus proposé, vos repas passés restent intacts.','В архиве: больше не предлагается, прошлые записи не изменились.')))}}]),
       {label:T('Le remplacer par un autre aliment…','Заменить другим продуктом…'),cls:'ghost',fn:()=>replacePicker(f,n,mods.length)},
@@ -904,7 +904,7 @@ function replacePicker(f,n,nm){
   bg.querySelector('#rc').onclick=()=>bg.remove();
   bg.querySelectorAll('[data-r]').forEach(r=>r.onclick=()=>{const to=food(r.dataset.r);bg.remove();
     ask(T('Confirmer','Подтвердите'),T(`Remplacer « ${esc(f.nom)} » par « ${esc(to.nom)} »${n?' dans '+n+' repas':''}${nm?(n?' et':' dans')+' '+nm+' repas type'+(nm>1?'s':''):''}, puis supprimer « ${esc(f.nom)} » ?`,
-      `Заменить «${esc(f.nom)}» на «${esc(to.nom)}»${n?' в приёмах пищи ('+n+')':''}${nm?(n?' и':' в')+' типовых ('+nm+')':''}, затем удалить «${esc(f.nom)}»?`),[
+      `Заменить «${esc(f.nom)}» на «${esc(to.nom)}»${n?' в приёмах пищи ('+n+')':''}${nm?(n?' и':' в')+' типовых меню ('+nm+')':''}, затем удалить «${esc(f.nom)}»?`),[
       {label:T('Oui, remplacer','Да, заменить'),fn:()=>{[...S.meals,...S.models].forEach(m=>m.items.forEach(l=>{if(l.foodId===f.id)l.foodId=to.id}));S.foods=S.foods.filter(x=>x!==f);save();navBack(()=>toast(T('« '+f.nom+' » remplacé par « '+to.nom+' ».','«'+f.nom+'» заменён на «'+to.nom+'».')))}},{label:T('Non','Нет'),cls:'ghost'}])});
 }
 
@@ -1008,9 +1008,9 @@ function types(){
   app.className='';
   const ms=[...S.models].sort(byName);
   app.innerHTML=top(T('Repas types','Типовые приёмы пищи'))+`
-   <p class="muted">${T('Touchez un repas type pour le noter aujourd\'hui (vous pourrez encore le changer avant d\'enregistrer). Le crayon le modifie. Vous pouvez aussi garder un repas en cours comme repas type (« ☆ Garder comme repas type »). Un repas type ne compte pas dans vos repas.','Нажмите на типовой, чтобы записать его на сегодня (до сохранения его можно изменить). Карандаш — изменить типовой. Текущий приём пищи тоже можно сохранить как типовой («☆ Сохранить как типовой»). Типовой не считается в ваших записях.')}</p>
-   <div class="list">${ms.length?ms.map(m=>`<div class="row"><div class="main" data-t="${m.id}" style="cursor:pointer"><div class="name">${esc(m.nom)}</div><div class="vals">${[T(m.items.length+' aliment'+(m.items.length>1?'s':''),'продуктов: '+m.items.length),nf(sum(m.items).k)+' '+KCAL,...TR().map(k=>sumTxt(m.items,k))].join(' · ')}</div></div><button class="ico" data-te="${m.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button></div>`).join(''):'<div class="row muted">'+T('Aucun repas type pour l\'instant.','Типовых пока нет.')+'</div>'}</div>
-   <button class="btn ghost wide" id="tNew" style="margin-top:12px">${T('+ Nouveau repas type','+ Новый типовой')}</button>`;
+   <p class="muted">${T('Touchez un repas type pour le noter aujourd\'hui (vous pourrez encore le changer avant d\'enregistrer). Le crayon le modifie. Vous pouvez aussi garder un repas en cours comme repas type (« ☆ Garder comme repas type »). Un repas type ne compte pas dans vos repas.','Нажмите на типовое меню, чтобы записать его на сегодня (до сохранения его можно изменить). Карандаш — изменить типовое меню. Текущий приём пищи тоже можно сохранить как типовое меню («☆ Сохранить как типовое меню»). Типовое меню не считается в ваших записях.')}</p>
+   <div class="list">${ms.length?ms.map(m=>`<div class="row"><div class="main" data-t="${m.id}" style="cursor:pointer"><div class="name">${esc(m.nom)}</div><div class="vals">${[T(m.items.length+' aliment'+(m.items.length>1?'s':''),'продуктов: '+m.items.length),nf(sum(m.items).k)+' '+KCAL,...TR().map(k=>sumTxt(m.items,k))].join(' · ')}</div></div><button class="ico" data-te="${m.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button></div>`).join(''):'<div class="row muted">'+T('Aucun repas type pour l\'instant.','Типовых меню пока нет.')+'</div>'}</div>
+   <button class="btn ghost wide" id="tNew" style="margin-top:12px">${T('+ Nouveau repas type','+ Новое типовое меню')}</button>`;
   bind();
   app.querySelectorAll('[data-t]').forEach(r=>r.onclick=()=>{const m=S.models.find(x=>x.id===r.dataset.t);startWith(m.items,T('« '+m.nom+' » ajouté.','«'+m.nom+'» добавлен.'))});
   app.querySelectorAll('[data-te]').forEach(b=>b.onclick=()=>{tEdit=null;go('typeEdit',{typeId:b.dataset.te})});
@@ -1023,7 +1023,7 @@ function typeEdit(){
   const src=state.typeId?S.models.find(x=>x.id===state.typeId):null;
   if(!tEdit)tEdit={nom:src?src.nom:'',items:src?src.items.map(l=>({foodId:l.foodId,g:l.g})):[]};
   const its=tEdit.items.filter(l=>food(l.foodId)),s=sum(its);
-  app.innerHTML=top(src?T('Modifier le repas type','Изменить типовой'):T('Nouveau repas type','Новый типовой'))+`
+  app.innerHTML=top(src?T('Modifier le repas type','Изменить типовое меню'):T('Nouveau repas type','Новое типовое меню'))+`
    <div class="card"><label for="tn" style="margin-top:0">${T('Nom','Название')}</label><input id="tn" value="${esc(tEdit.nom)}" maxlength="40" autocomplete="off" placeholder="${T('Par exemple : Petit déjeuner','Например: Завтрак')}"></div>
    <div class="list">${its.length?its.map(l=>{const f=food(l.foodId),i=tEdit.items.indexOf(l);return `<div class="row"><div class="main" data-q="${i}" style="cursor:pointer"><div class="name">${esc(f.nom)}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} ${KCAL}${TR().map(k=>{const v=nget(f,k);return v==null?'':' · '+nv(k,v*l.g/100)+' '+NUTS[k].unit+' '+NUTS[k].short}).join('')}</div></div><button class="ico del" data-x="${i}" aria-label="${T('Retirer','Убрать')}">${ic.del}</button></div>`}).join(''):'<div class="row muted">'+T('Aucun aliment pour l\'instant.','Продуктов пока нет.')+'</div>'}</div>
    <button class="btn ghost wide" id="tAdd" style="margin-top:10px">${T('+ Ajouter un aliment','+ Добавить продукт')}</button>
@@ -1034,16 +1034,16 @@ function typeEdit(){
   $('#tn').oninput=e=>{tEdit.nom=e.target.value};
   app.querySelectorAll('[data-q]').forEach(r=>r.onclick=()=>{const l=tEdit.items[+r.dataset.q];qtyPad(food(l.foodId),l.g,g=>{l.g=g;typeEdit()},{noEdit:true})});
   app.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{tEdit.items.splice(+b.dataset.x,1);typeEdit()});
-  $('#tAdd').onclick=()=>ingredientPicker(null,(f,g)=>{const ex=tEdit.items.find(l=>l.foodId===f.id);if(ex)ex.g+=g;else tEdit.items.push({foodId:f.id,g});typeEdit();toast(T(f.nom+' ajouté.',f.nom+': добавлено.'))},T('Ajouter un aliment','Добавить продукт'),T('Ajouter au repas type','Добавить в типовой'));
+  $('#tAdd').onclick=()=>ingredientPicker(null,(f,g)=>{const ex=tEdit.items.find(l=>l.foodId===f.id);if(ex)ex.g+=g;else tEdit.items.push({foodId:f.id,g});typeEdit();toast(T(f.nom+' ajouté.',f.nom+': добавлено.'))},T('Ajouter un aliment','Добавить продукт'),T('Ajouter au repas type','Добавить в типовое меню'));
   const leave=()=>{tEdit=null;navBack()};
   $('#tx').onclick=leave;
   const td=$('#td');if(td)td.onclick=()=>ask(T('Supprimer « '+esc(src.nom)+' » ?','Удалить «'+esc(src.nom)+'»?'),T('Vos repas déjà notés ne changent pas.','Уже записанные приёмы пищи не изменятся.'),[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.models=S.models.filter(x=>x!==src);save();toast(T('Repas type supprimé.','Удалено.'));leave()}},{label:T('Non','Нет'),cls:'ghost'}]);
   $('#ts').onclick=()=>{const n=tEdit.nom.trim(),items=tEdit.items.filter(l=>food(l.foodId)).map(l=>({foodId:l.foodId,g:l.g}));
-    if(!n){toast(T('Donnez un nom au repas type.','Дайте типовому название.'));$('#tn').focus();return}
+    if(!n){toast(T('Donnez un nom au repas type.','Дайте типовому меню название.'));$('#tn').focus();return}
     if(!items.length){toast(T('Ajoutez au moins un aliment.','Добавьте хотя бы один продукт.'));return}
-    if(S.models.some(x=>x!==src&&norm(x.nom)===norm(n))){toast(T('Un repas type porte déjà ce nom.','Типовой с таким названием уже есть.'));return}
+    if(S.models.some(x=>x!==src&&norm(x.nom)===norm(n))){toast(T('Un repas type porte déjà ce nom.','Типовое меню с таким названием уже есть.'));return}
     if(src){src.nom=n;src.items=items}else S.models.push({id:uid(),nom:n,items});
-    save();toast(T('Repas type « '+n+' » enregistré.','Типовой «'+n+'» сохранён.'));leave()};
+    save();toast(T('Repas type « '+n+' » enregistré.','Типовое меню «'+n+'» сохранено.'));leave()};
 }
 
 /* ================= ANALYSE (export pour une IA) ================= */
@@ -1131,7 +1131,7 @@ let restored=null;
 function sauvegarde(){
   app.className='';
   /* « 12 aliments, 30 repas… » / « продуктов: 12, приёмов пищи: 30… » */
-  const counts=o=>[[o.foods,'aliments','продуктов'],[o.meals,'repas','приёмов пищи'],[o.models,'repas types','типовых'],[o.weights,'pesées','взвешиваний'],[o.notes,'notes','заметок']]
+  const counts=o=>[[o.foods,'aliments','продуктов'],[o.meals,'repas','приёмов пищи'],[o.models,'repas types','типовых меню'],[o.weights,'pesées','взвешиваний'],[o.notes,'notes','заметок']]
     .filter(([a],i)=>i<2||(Array.isArray(a)&&a.length)).map(([a,fr,ru])=>T((a?a.length:0)+' '+fr,ru+': '+(a?a.length:0))).join(', ');
   app.innerHTML=top(T('Sauvegarde','Резервная копия'))+`
    ${restored?`<div class="okbox">${restored}</div>`:''}
@@ -1369,7 +1369,7 @@ function aide(){
    <h3>Записать</h3><ul style="padding-left:18px">
    <li><b>Мой приём пищи</b>: нажмите «Мои продукты», категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
    <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет значения продукта.</li>
-   <li><b>Типовые приёмы пищи</b>: то, что вы часто едите. Нажмите на типовой, чтобы записать его на сегодня; карандаш изменяет его (название, продукты, количество); «+ Новый типовой» создаёт новый. Текущий приём пищи тоже можно сохранить кнопкой «☆ Сохранить как типовой».</li>
+   <li><b>Типовые приёмы пищи</b>: то, что вы часто едите. Нажмите на типовое меню, чтобы записать его на сегодня; карандаш изменяет его (название, продукты, количество); «+ Новое типовое меню» создаёт новое. Текущий приём пищи тоже можно сохранить кнопкой «☆ Сохранить как типовое меню».</li>
    <li><b>Дублировать приём пищи</b>: выберите уже записанный приём пищи; его продукты составят новый, который можно изменить перед сохранением. Удобно для остатков.</li>
    <li><b>Заметка</b> (если в Профиле отмечены личные заметки): несколько слов с датой, без подсчётов («2 часа на велосипеде», «небольшая температура»). <b>Мой вес</b>: сразу после сна, если вы нормально выспались, натощак. <b>Подъём</b> и <b>Отбой</b>: если в Профиле отмечен сон.</li>
    <li><b>Управление продуктами</b> (внизу экрана «Записать»): создать продукт или домашнее блюдо (рецепт), исправить карточку, дополнить недостающий нутриент («Дополнить»), убрать в архив продукт, который вы больше не покупаете (кнопка «В архив» в его карточке; он остаётся в списке «В архиве»).</li></ul>
