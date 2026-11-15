@@ -13,6 +13,7 @@
   --kcal:#B8681F; --kcal-soft:#F6E7D6; --prot:#2F64A0; --prot-soft:#DDE8F5; --warn:#A8402E; --flash:#FFF3C4; --ok:#E2EEE6;
   --gluc:#8A6D1F; --gluc-soft:#F1E9D2; --sucres:#A0446E; --sucres-soft:#F3DDE7; --sel:#5E6B78; --sel-soft:#E2E6EA;
   --fibres:#4F7F2A; --fibres-soft:#E3EDD8; --pot:#6B4FA0; --pot-soft:#E6E0F2;
+  --alert:#B94A2C; --alert-soft:#FBE3DA; --amber:#FFC107;
   --f:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
@@ -20,13 +21,13 @@
   --accent:#6FBF94; --accent-ink:#0E1A13; --accent-soft:#213229;
   --kcal:#E8A25E; --kcal-soft:#3A2B1C; --prot:#7FAEE6; --prot-soft:#1D2B3D; --warn:#E58A77; --flash:#4A4220; --ok:#213229;
   --gluc:#D9BC6A; --gluc-soft:#332B17; --sucres:#E592B6; --sucres-soft:#3A1F2B; --sel:#A9B6C3; --sel-soft:#262D33;
-  --fibres:#9CCB72; --fibres-soft:#24301A; --pot:#B49BE6; --pot-soft:#2A2240; color-scheme:dark}}
+  --fibres:#9CCB72; --fibres-soft:#24301A; --pot:#B49BE6; --pot-soft:#2A2240; --alert:#F0997B; --alert-soft:#3D2219; color-scheme:dark}}
 :root[data-theme="dark"]{
   --bg:#121815; --surface:#1B231F; --ink:#E6ECE7; --muted:#9AA79F; --line:#2D3832;
   --accent:#6FBF94; --accent-ink:#0E1A13; --accent-soft:#213229;
   --kcal:#E8A25E; --kcal-soft:#3A2B1C; --prot:#7FAEE6; --prot-soft:#1D2B3D; --warn:#E58A77; --flash:#4A4220; --ok:#213229;
   --gluc:#D9BC6A; --gluc-soft:#332B17; --sucres:#E592B6; --sucres-soft:#3A1F2B; --sel:#A9B6C3; --sel-soft:#262D33;
-  --fibres:#9CCB72; --fibres-soft:#24301A; --pot:#B49BE6; --pot-soft:#2A2240; color-scheme:dark}
+  --fibres:#9CCB72; --fibres-soft:#24301A; --pot:#B49BE6; --pot-soft:#2A2240; --alert:#F0997B; --alert-soft:#3D2219; color-scheme:dark}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -130,6 +131,9 @@ h2{font-size:1rem;margin:16px 0 8px}
 .pickdate svg{width:18px;height:18px;color:var(--accent);display:block}
 .pickdate input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer;border:0;padding:0}
 .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.seg.three{grid-template-columns:1fr 1fr 1fr}
+.help h3{font-size:1rem;margin:14px 0 4px;color:var(--accent)}
+.help li{margin-bottom:6px}
 .seg button{border:0;background:var(--surface);color:var(--muted);padding:9px;font-weight:700}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
 .gauges{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
@@ -189,8 +193,36 @@ h2{font-size:1rem;margin:16px 0 8px}
 .lvl button{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 4px;font-size:.8rem;line-height:1.25;color:var(--ink)}
 .lvl button b{display:block;font-size:1rem}
 .lvl button[aria-pressed="true"]{border:2px solid var(--accent);background:var(--accent-soft)}
-.remind{display:flex;align-items:center;gap:10px;max-width:340px;margin:18px auto 0;background:var(--kcal-soft);border-radius:12px;padding:10px 12px;font-size:.9rem}
+.remind{display:flex;align-items:center;gap:10px;max-width:340px;margin:18px auto 0;background:var(--alert-soft);color:var(--alert);font-weight:700;border-radius:12px;padding:10px 12px;font-size:.9rem}
 .remind span{flex:1}
+.remind .btn{background:var(--alert);border-color:var(--alert);color:#fff}
+/* accueil à deux ronds (lot 2, étape 1) ; couleur des avertissements : --alert */
+.hello{text-align:center;padding:26px 0 0}
+.hello .title{font-size:1.8rem;font-weight:800;color:var(--accent);letter-spacing:-.01em}
+.hello .who{font-size:1.1rem;font-weight:700;margin-top:2px}
+.alertline{border:0;background:var(--alert-soft);color:var(--alert);font-weight:800;font-size:1rem;border-radius:999px;padding:7px 16px;margin-top:8px}
+.rounds{display:flex;flex-direction:column;gap:18px;max-width:330px;margin:34px auto 0}
+.round{width:150px;height:150px;border-radius:50%;border:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px;text-align:center;line-height:1.15;font-size:1.15rem;font-weight:800;box-shadow:0 3px 10px rgba(0,0,0,.12)}
+.round svg{width:40px;height:40px}
+.round.r1{align-self:flex-start;background:var(--accent);color:var(--accent-ink)}
+.round.r2{align-self:flex-end;background:var(--prot);color:#fff}
+.tmplink{display:block;margin:26px auto 0;border:0;background:none;color:var(--accent);font-weight:700;text-decoration:underline}
+.dock .in.six button{padding:4px 2px;font-size:.68rem;min-width:0;flex:1}
+.dock .in.six svg{width:24px;height:24px}
+.dock button.amb svg{color:var(--amber)}
+/* entrées fixes de l'appli (idée 51) : fond propre ; menus de Noter */
+.row.fx{background:var(--accent-soft)}
+.row.fx .name{color:var(--accent)}
+.menu .row{padding:14px 12px;cursor:pointer}
+.menu .row .kc,.row.nav .kc{font-size:.85rem;color:var(--muted);font-weight:700}
+.row.nav{cursor:pointer}
+.pathlbl{flex:1;font-weight:700;color:var(--muted);padding:0 4px}
+.pathbtn{flex:1;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--accent);font-weight:700;border-radius:10px;padding:10px;min-height:44px;display:flex;align-items:center;gap:6px}
+.pathbtn b{font-size:1.3rem;line-height:.8}
+.appcard{display:flex;gap:12px;align-items:flex-start}
+.appcard .txt{flex:1}
+.appcard h3{margin:0 0 4px;font-size:1rem}
+.appcard p{margin:0 0 8px;font-size:.9rem}
 </style>
 </head>
 <body>
@@ -234,6 +266,9 @@ const ic={
   help:svg('M12 2a10 10 0 100 20 10 10 0 000-20zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92A3.4 3.4 0 0013 15h-2v-.5a4 4 0 011.17-2.83l1.24-1.26A2 2 0 1010 9H8a4 4 0 118 0 3.2 3.2 0 01-.93 2.25z'),
   fork:svg('M11 9H9V2H7v7H5V2H3v7c0 2.12 1.66 3.84 3.75 3.97V22h2.5v-9.03C11.34 12.84 13 11.12 13 9V2h-2v7zm5-3v8h2.5v8H21V2c-2.76 0-5 2.24-5 4z'),
   book:svg('M18 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V4a2 2 0 00-2-2zM9 4h2v5l-1-.75L9 9V4zm9 16H6V4h1v9l3-2.25L13 13V4h5v16z'),
+  coffee:svg('M20 3H4v10a4 4 0 004 4h6a4 4 0 004-4v-3h2a2 2 0 002-2V5a2 2 0 00-2-2zm0 5h-2V5h2v3zM4 19h16v2H4z'),
+  apps:svg('M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z'),
+  chart:svg('M19 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V5a2 2 0 00-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z'),
   search:svg('M15.5 14h-.79l-.28-.27A6.47 6.47 0 0016 9.5 6.5 6.5 0 109.5 16a6.47 6.47 0 004.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z'),
 };
 
@@ -264,6 +299,8 @@ const NKEYS=Object.keys(NUTS),MAXNUTS=3;
 function seed(){return {foods:baseFoods(),meals:[],goals:{kcal:null,prot:null},cats:[...DEFAULT_CATS],models:[],base:1,
   profile:{nuts:['prot'],sommeil:false,niveau:'normal'},weights:[],notes:[]}}
 let S;
+/* premier lancement (aucun carnet enregistré) : le Profil s'ouvre tout seul (lot 2, étape 1) */
+const FRESH=!store.get(KEY);
 try{S=JSON.parse(store.get(KEY))}catch(e){S=null}
 if(!S||!Array.isArray(S.foods))S=seed();
 function migrate(){
@@ -329,6 +366,7 @@ function navBack(fn){afterBack=fn||null;if(back.length)history.back();else doBac
 function doBack(){
   clearToasts();
   if(view==='noter'&&draft){if(draft.items.length){pendingDraft=draft;saveDraft()}else clearDraft();draft=null}
+  if(view==='typeEdit')tEdit=null;
   view=back.pop()||'home';render();window.scrollTo(0,0);
   const f=afterBack;afterBack=null;if(f)f();
 }
@@ -338,7 +376,7 @@ addEventListener('popstate',()=>{
   doBack();
 });
 history.replaceState({v:'home'},'');
-const VIEWNAME={home:T('Accueil','Главная'),noter:T('Repas','Приём пищи'),aliments:T('Aliments','Продукты'),repas:T('Mes repas','Мои приёмы пищи'),fiche:T('Fiche','Карточка'),types:T('Repas types','Типовые')};
+const VIEWNAME={home:T('Accueil','Главная'),menu:T('Noter','Записать'),noter:T('Mon repas','Мой приём пищи'),typeEdit:T('Repas type','Типовой'),aliments:T('Aliments','Продукты'),repas:T('Mon suivi','Мой дневник'),fiche:T('Fiche','Карточка'),types:T('Repas types','Типовые'),profil:T('Profil','Профиль')};
 function toast(t){clearToasts();const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2600)}
 const top=title=>`<div class="top"><button class="back" data-back aria-label="${T('Retour','Назад')}"><b>‹</b>${VIEWNAME[back[back.length-1]]||VIEWNAME.home}</button><h1>${title}</h1></div>`;
 function bind(){app.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>navBack())}
@@ -420,8 +458,6 @@ function selectorOptions(ctx){
   /* le nombre d'éléments suit chaque nom : « Toutes (35) » ; les archivés ne comptent que dans « Archivés » */
   const active=S.foods.filter(f=>!f.arch),cnt=(l,n)=>l+' ('+n+')';
   const o=[['toutes',cnt(T('Toutes','Все'),active.length)]];
-  if(ctx==='noter'&&S.models.length)o.push(['types',cnt(T('Repas types','Типовые приёмы пищи'),S.models.length)]);
-  if(ctx==='noter'&&S.meals.length)o.push(['prev',T('Reprendre un repas noté…','Повторить записанный приём пищи…')]);
   const preps=active.filter(f=>f.recette).length;
   if(ctx!=='ingr'&&preps)o.push(['preps',cnt(PREPS,preps)]);
   S.cats.forEach(c=>{if(norm(c)===norm(PREPS))return;const n=active.filter(f=>catOf(f)===c).length;if(n)o.push(['c:'+c,cnt(c,n)])});
@@ -472,7 +508,7 @@ function pickBar(sel){
     <button class="loupe" id="loupe" aria-pressed="${!!sel.search}" aria-label="${sel.search?T('Fermer la recherche','Закрыть поиск'):T('Rechercher','Поиск')}">${sel.search?ic.x:ic.search}</button></div>`;
 }
 function wirePick(root,sel,redraw,refill,onSearchFocus){
-  const s=root.querySelector('#sel');if(s)s.onchange=e=>{if(e.target.value==='prev'){e.target.value=sel.v;mealPicker();return}sel.v=e.target.value;refill();const sc=root.querySelector('.scroll');if(sc)sc.scrollTop=0};
+  const s=root.querySelector('#sel');if(s)s.onchange=e=>{sel.v=e.target.value;refill();const sc=root.querySelector('.scroll');if(sc)sc.scrollTop=0};
   root.querySelector('#loupe').onclick=()=>{sel.search=!sel.search;sel.q='';redraw();if(sel.search)setTimeout(()=>{const q=root.querySelector('#q');q&&q.focus()},30)};
   const q=root.querySelector('#q');if(q){q.oninput=e=>{sel.q=e.target.value;refill()};if(onSearchFocus){q.onfocus=()=>onSearchFocus(true);q.onblur=()=>onSearchFocus(false)}}
 }
@@ -483,24 +519,27 @@ function home(){
   /* rappel de pesée : pas la nuit (seulement à partir de 5 h), avec le vrai nombre de jours */
   const lw=lastWeight(),remindW=lw&&lw.date<=addDays(todayIso(),-7)&&new Date().getHours()>=5;
   const nd=lw?Math.round((parse(todayIso())-parse(lw.date))/864e5):0,ruD=n=>n%10===1&&n%100!==11?'день':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'дня':'дней';
-  app.innerHTML=`<div class="cover"><div class="logo">${ic.fork}</div><div class="title">NutriNote</div>
-    <p class="slogan l1">${T('Noter votre alimentation','Дневник питания')}</p><p class="slogan">${T('Export intégré pour analyse par une IA','Встроенный экспорт для анализа с помощью ИИ')}</p></div>
-  <div class="bigs">
-    <button class="main" id="bNoter">${ic.fork}${T('Noter un repas','Записать приём пищи')}</button>
-    <button id="bAlim">${ic.book}${T('Mes aliments','Мои продукты')}</button>
-    <button id="bRepas">${ic.cal}${T('Mes repas','Мои приёмы пищи')}</button>
+  /* en haut : NutriNote et le nom (simple personnalisation) ; « Remplir mon profil » tant que l'objectif ne peut pas être calculé */
+  const nom=(S.profile.nom||'').trim(),noProf=!calcKcal();
+  app.innerHTML=`<div class="hello"><div class="title">NutriNote</div>
+    ${noProf?`<button class="alertline" id="bProf">${T('Remplir mon profil','Заполнить мой профиль')}</button>`:nom?`<div class="who">${esc(nom)}</div>`:''}</div>
+  <div class="rounds">
+    <button class="round r1" id="bNoter">${ic.pen}${T('Noter','Записать')}</button>
+    <button class="round r2" id="bRepas">${ic.chart}${T('Mon suivi','Мой дневник')}</button>
   </div>
   ${remindW?`<div class="remind"><span>${T(nd+' jours depuis votre dernière pesée.',nd+' '+ruD(nd)+' с последнего взвешивания.')}</span><button class="btn small" id="bW">${T('Noter mon poids','Записать вес')}</button></div>`:''}
   <div style="height:90px"></div>
-  <div class="dock"><div class="in">
-    <button data-v="analyse">${ic.ai}${T('Analyse','Анализ')}</button>
-    <button data-v="sauvegarde">${ic.save}${T('Sauvegarde','Копия')}</button>
+  <div class="dock"><div class="in six">
     <button data-v="profil">${ic.user}${T('Profil','Профиль')}</button>
+    <button data-v="analyse">${ic.ai}${T('Analyse','Анализ')}</button>
+    <button data-v="sauvegarde" class="amb">${ic.save}${T('Sauvegarde','Копия')}</button>
+    <button data-v="applis" class="amb">${ic.apps}${T('Autres applis','Другие')}</button>
     <button data-v="aide">${ic.help}${T('Aide','Помощь')}</button>
+    <button data-v="cafe">${ic.coffee}${T('Café','Кофе')}</button>
   </div></div>`;
-  $('#bNoter').onclick=()=>startNoter();
-  $('#bAlim').onclick=()=>{alimSel={ctx:'aliments',v:'toutes',search:false,q:''};go('aliments')};
+  $('#bNoter').onclick=()=>go('menu');
   $('#bRepas').onclick=()=>{viewDate=todayIso();mode='jour';go('repas')};
+  const bp=$('#bProf');if(bp)bp.onclick=()=>go('profil');
   const bw=$('#bW');if(bw)bw.onclick=()=>addWeight(home);
   app.querySelectorAll('.dock [data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v));
 }
@@ -512,8 +551,9 @@ function saveDraft(){const d=draft||pendingDraft;if(d&&d.items.length)store.set(
 function clearDraft(){pendingDraft=null;store.del(KEY+'.draft')}
 (function loadDraft(){let d=null;try{d=JSON.parse(store.get(KEY+'.draft'))}catch(e){}
   if(d&&Array.isArray(d.items)){d.items=d.items.filter(l=>food(l.foodId));if(d.editId&&!S.meals.some(m=>m.id===d.editId))d.editId=null;if(d.items.length)pendingDraft=d}})();
-function enterNoter(makeDraft){
-  const go2=d=>{draft=d;noterSel={ctx:'noter',v:'toutes',search:false,q:''};go('noter')};
+/* after : ce qu'on fait une fois l'écran Mon repas ouvert (ajouter les aliments d'un repas type ou d'un repas dupliqué) */
+function enterNoter(makeDraft,after){
+  const go2=d=>{draft=d;noterSel={ctx:'noter',v:'root',search:false,q:''};go('noter');if(after){after();drawBasket()}};
   if(pendingDraft&&pendingDraft.items.length){const p=pendingDraft,n=p.items.length;
     ask(T('Un repas est en cours','Есть незаконченный приём пищи'),T(`${p.editId?'Modification du repas '+(p.time?'de '+fmtT(p.time):'sans heure'):'Repas'} du ${longDate(p.date).toLowerCase()} · ${n} aliment${n>1?'s':''} · ${nf(sum(p.items).k)} kcal. Voulez-vous le reprendre ?`,
       `${p.editId?'Изменение приёма пищи '+fmtT(p.time):'Приём пищи'}, ${dayMonth(p.date)} · продуктов: ${n} · ${nf(sum(p.items).k)} ккал. Продолжить?`),[
@@ -523,25 +563,66 @@ function enterNoter(makeDraft){
   go2(makeDraft());
 }
 function startNoter(date){enterNoter(()=>({editId:null,date:date||todayIso(),time:hm(),items:[]}))}
+/* un nouveau repas qui part des aliments d'un repas type ou d'un repas d'un autre jour ; s'il y a un repas en cours repris, ils s'y ajoutent */
+function startWith(items,msg){enterNoter(()=>({editId:null,date:todayIso(),time:hm(),items:[]}),()=>{items.filter(l=>food(l.foodId)).forEach(l=>addToDraft(l.foodId,l.g));draft.flash='*';saveDraft();if(msg)toast(msg)})}
+
+/* ================= NOTER : le menu de tout ce qu'on crée (lot 2, étape 2) ================= */
+function menu(){
+  app.className='';
+  const p=S.profile,row=(id,label,n,fx)=>`<div class="row${fx?' fx':''}" id="${id}"><div class="main"><span class="name">${label}</span></div><span class="kc">${n!=null?n+' ':''}›</span></div>`;
+  app.innerHTML=top(T('Noter','Записать'))+`
+   <div class="list menu">${row('mRepas',T('Mon repas','Мой приём пищи'),null,1)}${row('mTypes',T('Repas types','Типовые приёмы пищи'),S.models.length,1)}${S.meals.length?row('mDup',T('Dupliquer un repas','Дублировать приём пищи'),null,1):''}</div>
+   <div class="list menu" style="margin-top:12px">${p.notes?row('mNote',T('Une note','Заметка')):''}${row('mPoids',T('Mon poids','Мой вес'))}${p.sommeil?row('mLever',T('Lever','Подъём'))+row('mCoucher',T('Coucher','Отбой')):''}</div>
+   <button class="tmplink" id="mAlim">${T('Gérer mes aliments','Управление продуктами')}</button>`;
+  bind();
+  $('#mRepas').onclick=()=>startNoter();
+  $('#mTypes').onclick=()=>go('types');
+  const md=$('#mDup');if(md)md.onclick=()=>mealPicker({title:T('Dupliquer un repas','Дублировать приём пищи'),hint:T('Touchez un repas : ses aliments forment un nouveau repas, que vous pourrez ajuster avant de l\'enregistrer.','Нажмите на приём пищи: его продукты составят новый приём пищи, который можно изменить перед сохранением.'),
+    onPick:m=>startWith(m.items,T('Repas de '+fmtT(m.time)+' du '+longDate(m.date).toLowerCase()+' dupliqué.','Продублировано: '+fmtT(m.time)+', '+dayMonth(m.date)+'.'))});
+  const ev=(id,k)=>{const b=$(id);if(b)b.onclick=()=>evtSheet(k,todayIso(),hm(),null,null)};
+  ev('#mNote','note');ev('#mLever','lever');ev('#mCoucher','coucher');
+  $('#mPoids').onclick=()=>addWeight(null);
+  $('#mAlim').onclick=()=>{alimSel={ctx:'aliments',v:'toutes',search:false,q:''};go('aliments')};
+}
 function addToDraft(foodId,g){const ex=draft.items.find(l=>l.foodId===foodId);if(ex){ex.g+=g;draft.items.splice(draft.items.indexOf(ex),1);draft.items.push(ex)}else draft.items.push({foodId,g});draft.flash=foodId;saveDraft()}
 function noter(){
   const d=draft;if(!d){view='home';back=[];home();return}
   app.className='full';
-  app.innerHTML=top(d.editId?T('Modifier le repas','Изменить приём пищи'):T('Noter un repas','Записать приём пищи'))+`
+  app.innerHTML=top(d.editId?T('Modifier le repas','Изменить приём пищи'):T('Mon repas','Мой приём пищи'))+`
   ${d.editId?`<div class="banner">${T('Modification du repas '+(d.time?'de '+fmtT(d.time):'sans heure')+', '+longDate(d.date).toLowerCase(),'Изменение приёма пищи '+fmtT(d.time)+', '+dayMonth(d.date))}</div>`:d.date!==todayIso()?`<div class="banner">${T('Ce repas sera noté au '+longDate(d.date).toLowerCase(),'Приём пищи будет записан на '+dayMonth(d.date))}</div>`:''}
   <div class="headgrid"><input type="date" id="dDate" value="${d.date}" aria-label="${T('Date','Дата')}" max="${todayIso()}"><input type="time" id="dTime" value="${d.time||''}" aria-label="${T('Heure','Время')}"></div>
-  ${d.editId?'':evtChips()}
-  <div class="upper" id="upper">${pickBar(noterSel)}<div class="scroll"><div class="list" id="res"></div></div></div>
+  <div class="upper" id="upper">${noterBar()}<div class="scroll"><div class="list" id="res"></div></div></div>
   <div class="basket" id="basket"></div>`;
   bind();
   $('#dDate').onchange=e=>{d.date=e.target.value||todayIso();saveDraft();noter()};
   $('#dTime').onchange=e=>{d.time=e.target.value;saveDraft()};
-  app.querySelectorAll('[data-ev]').forEach(b=>b.onclick=()=>evtSheet(b.dataset.ev,d.date,hm(),null,null));
   fillNoterList();drawBasket();
   wirePick($('#upper'),noterSel,()=>noter(),fillNoterList,v=>$('#basket').classList.toggle('mini',v));
+  const up=$('#nUp');if(up)up.onclick=()=>{noterSel.v=noterSel.v==='preps'||noterSel.v==='cats'?'root':'cats';noter()};
+}
+/* Mon repas : on descend Préparations ou Mes aliments › une catégorie › un aliment ; la loupe cherche partout */
+function noterBar(){
+  if(noterSel.search)return pickBar(noterSel);
+  const v=noterSel.v,lbl=v==='root'?T('Choisissez vos aliments','Выберите продукты'):v==='cats'?T('Mes aliments','Мои продукты'):v==='preps'?PREPS:v==='toutes'?T('Tous mes aliments','Все мои продукты'):v.slice(2);
+  return `<div class="pickbar">${v==='root'?`<div class="pathlbl">${lbl}</div>`:`<button class="pathbtn" id="nUp"><b>‹</b> ${esc(lbl)}</button>`}<button class="loupe" id="loupe" aria-pressed="false" aria-label="${T('Rechercher','Поиск')}">${ic.search}</button></div>`;
 }
 function fillNoterList(){
-  const el=$('#res');if(!el)return;el.innerHTML=renderList(noterSel,noterSel.search?noterSel.q:'');
+  const el=$('#res');if(!el)return;
+  const v=noterSel.v,act=S.foods.filter(f=>!f.arch);
+  if(!noterSel.search&&(v==='root'||v==='cats')){
+    const row=(k,l,n,fx)=>`<div class="row one nav${fx?' fx':''}" data-nv="${esc(k)}"><div class="main"><span class="name">${esc(l)}</span></div><span class="kc">${n} ›</span></div>`;
+    let h='';
+    if(v==='root'){const np=act.filter(f=>f.recette).length;if(np)h+=row('preps',PREPS,np,1);h+=row('cats',T('Mes aliments','Мои продукты'),act.length,1)}
+    else{h+=row('toutes',T('Tous','Все'),act.length,1);
+      S.cats.forEach(c=>{if(norm(c)===norm(PREPS))return;const n=act.filter(f=>catOf(f)===c).length;if(n)h+=row('c:'+c,c,n)});
+      const nc=act.filter(f=>catOf(f)===NOCAT).length;if(nc)h+=row('c:'+NOCAT,NOCAT,nc,1)}
+    h+=`<div class="row add" data-new="">${T('+ Nouvel aliment','+ Новый продукт')}</div>`;
+    el.innerHTML=h;
+    el.querySelectorAll('[data-nv]').forEach(r=>r.onclick=()=>{noterSel.v=r.dataset.nv;noter()});
+    el.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>go('fiche',{editFood:null,returnTo:'noter',presetCat:null,prefill:null}));
+    return;
+  }
+  el.innerHTML=renderList(noterSel,noterSel.search?noterSel.q:'');
   el.querySelectorAll('[data-f]').forEach(r=>r.onclick=()=>{const f=food(r.dataset.f);qtyPad(f,null,g=>{addToDraft(f.id,g);drawBasket()})});
   el.querySelectorAll('[data-m]').forEach(r=>r.onclick=()=>{const m=S.models.find(x=>x.id===r.dataset.m);m.items.filter(l=>food(l.foodId)).forEach(l=>addToDraft(l.foodId,l.g));draft.flash='*';drawBasket();toast(T('Repas type « '+m.nom+' » ajouté.','Добавлено: «'+m.nom+'».'))});
   el.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>go('fiche',{editFood:null,returnTo:'noter',presetCat:b.dataset.new||null,prefill:noterSel.search?noterSel.q.trim():null}));
@@ -572,7 +653,7 @@ const evtChips=()=>(S.profile.notes||S.profile.sommeil)?`<div class="chips">${S.
 function evtSheet(kind,date,time,after,ex){
   const isNote=kind==='note';
   const bg=overlay('',`<div class="sheet"><h3>${ex?T('Modifier : ','Изменить: '):''}${EVT[kind]}</h3>
-    ${isNote?'<p class="muted" style="margin:4px 0 0">'+T('Quelques mots, hors calcul : « 2 h de vélo », « un peu de fièvre »… Ils partent dans l\'export pour une IA.','Несколько слов, без подсчётов: «2 часа на велосипеде», «небольшая температура»… Они попадут в экспорт для ИИ.')+'</p>':''}
+    ${isNote?'<p class="muted" style="margin:4px 0 0">'+T('Quelques mots, hors calcul : « 2 h de vélo », « un peu de fièvre »… Ils ne partent dans l\'export pour une IA que si vous cochez la case.','Несколько слов, без подсчётов: «2 часа на велосипеде», «небольшая температура»… В экспорт для ИИ они попадут, только если вы это отметите.')+'</p>':''}
     <div class="headgrid" style="margin-top:10px"><input type="date" id="eDate" value="${date}" max="${todayIso()}" aria-label="${T('Date','Дата')}"><input type="time" id="eTime" value="${time||''}" aria-label="${T('Heure','Время')}"></div>
     ${isNote?`<textarea id="eTxt" rows="6" maxlength="2000" placeholder="${T('Votre note','Ваша заметка')}">${esc(ex?ex.text:'')}</textarea>`:''}
     <div class="grid2" style="margin-top:10px"><button class="btn ghost" id="eX">${T('Annuler','Отмена')}</button><button class="btn" id="eOk">${T('Enregistrer','Сохранить')}</button></div></div>`);
@@ -585,15 +666,15 @@ function evtSheet(kind,date,time,after,ex){
     save();bg.remove();toast(T(EVT[kind]+' enregistré'+(isNote?'e':'')+'.',EVT[kind]+': сохранено.'));after&&after();
   };
 }
-/* reprendre un repas déjà noté : on navigue de jour en jour, on touche un repas, ses aliments s'ajoutent au repas en cours */
-function mealPicker(){
-  const d=draft,dates=[...new Set(S.meals.filter(m=>m.id!==d.editId).map(m=>m.date))].sort();if(!dates.length)return;
-  let i=dates.filter(x=>x<d.date).length-1;if(i<0)i=dates.filter(x=>x<=d.date).length-1;if(i<0)i=dates.length-1;
+/* dupliquer un repas déjà noté : on navigue de jour en jour, on touche un repas (opts : title, hint, onPick) */
+function mealPicker(opts){
+  const ref=todayIso(),dates=[...new Set(S.meals.map(m=>m.date))].sort();if(!dates.length)return;
+  let i=dates.filter(x=>x<ref).length-1;if(i<0)i=dates.length-1;
   const bg=overlay('',`<div class="sheet tall" id="mp"></div>`),sh=bg.querySelector('#mp');
-  const draw=()=>{const day=dates[i],ms=S.meals.filter(m=>m.date===day&&m.id!==d.editId).sort(mealSort);
-    sh.innerHTML=`<div class="sheet-h"><h3>${T('Reprendre un repas noté','Повторить приём пищи')}</h3><button class="ico" id="mpx" aria-label="${T('Fermer','Закрыть')}">${ic.x}</button></div>
+  const draw=()=>{const day=dates[i],ms=S.meals.filter(m=>m.date===day).sort(mealSort);
+    sh.innerHTML=`<div class="sheet-h"><h3>${opts.title}</h3><button class="ico" id="mpx" aria-label="${T('Fermer','Закрыть')}">${ic.x}</button></div>
       <div class="daynav" style="margin-top:8px"><button id="mpp" aria-label="${T('Jour précédent','Предыдущий день')}" ${i?'':'disabled'}>‹</button><label class="pickdate">${longDate(day)} ${ic.cal}<input type="date" id="mpd" value="${day}" max="${todayIso()}" aria-label="${T('Choisir une date','Выбрать дату')}"></label><button id="mpn" aria-label="${T('Jour suivant','Следующий день')}" ${i<dates.length-1?'':'disabled'}>›</button></div>
-      <p class="muted" style="margin:0">${T('Touchez un repas : ses aliments s\'ajoutent au repas en cours, vous pourrez changer les quantités.','Нажмите на приём пищи: его продукты добавятся в текущий, количество можно будет изменить.')}</p>
+      <p class="muted" style="margin:0">${opts.hint}</p>
       <div class="scroll">${ms.map(m=>`<div class="meal" data-pm="${m.id}" style="cursor:pointer"><div class="meal-h"><div class="t">${fmtT(m.time)} <span>· ${nf(sum(m.items).k)} ${KCAL}</span></div></div>
         <div class="row" style="display:block"><div class="vals">${m.items.map(l=>{const f=food(l.foodId);return esc(f?f.nom:'?')+' '+qty(f,l.g)}).join(' ; ')}</div></div></div>`).join('')}</div>`;
     sh.querySelector('#mpx').onclick=()=>bg.remove();
@@ -601,8 +682,7 @@ function mealPicker(){
     sh.querySelector('#mpn').onclick=()=>{if(i<dates.length-1){i++;draw()}};
     const pd=sh.querySelector('#mpd');pd.onclick=e=>{try{e.target.showPicker()}catch(_){}};
     pd.onchange=e=>{const v=e.target.value;if(!v)return;const j=dates.filter(x=>x<=v).length-1;i=j<0?0:j;draw();if(dates[i]!==v)toast(T('Pas de repas ce jour-là : voici le plus proche avant.','В этот день записей нет: показан ближайший день до него.'))};
-    sh.querySelectorAll('[data-pm]').forEach(x=>x.onclick=()=>{const m=S.meals.find(z=>z.id===x.dataset.pm);
-      m.items.filter(l=>food(l.foodId)).forEach(l=>addToDraft(l.foodId,l.g));d.flash='*';bg.remove();drawBasket();toast(T('Repas de '+fmtT(m.time)+' du '+longDate(m.date).toLowerCase()+' ajouté.','Добавлено: '+fmtT(m.time)+', '+dayMonth(m.date)+'.'))});
+    sh.querySelectorAll('[data-pm]').forEach(x=>x.onclick=()=>{const m=S.meals.find(z=>z.id===x.dataset.pm);bg.remove();opts.onPick(m)});
   };
   draw();
 }
@@ -730,19 +810,26 @@ function fiche(){
   };
 }
 /* choisir un ingrédient d'une préparation : même sélecteur que pour un repas */
-function ingredientPicker(selfId){
+/* aussi pour un repas type (idée 47) : onAdd(f,g) et les textes sont alors fournis */
+function ingredientPicker(selfId,onAdd,title,okLabel){
   const sel={ctx:'ingr',v:'toutes',search:false,q:'',exclude:selfId};
   const bg=overlay('',`<div class="sheet tall" id="ip"></div>`);const sh=bg.querySelector('#ip');
   const draw=()=>{
-    sh.innerHTML=`<div class="sheet-h"><h3>${T('Ajouter un ingrédient','Добавить ингредиент')}</h3><button class="ico" id="ipx" aria-label="${T('Fermer','Закрыть')}">${ic.x}</button></div><div style="margin-top:8px">${pickBar(sel)}</div><div class="scroll"><div class="list" id="ipres"></div></div>`;
+    sh.innerHTML=`<div class="sheet-h"><h3>${title||T('Ajouter un ingrédient','Добавить ингредиент')}</h3><button class="ico" id="ipx" aria-label="${T('Fermer','Закрыть')}">${ic.x}</button></div><div style="margin-top:8px">${pickBar(sel)}</div><div class="scroll"><div class="list" id="ipres"></div></div>`;
     sh.querySelector('#ipx').onclick=()=>bg.remove();
     fill();wirePick(sh,sel,draw,fill);
   };
   const fill=()=>{const el=sh.querySelector('#ipres');el.innerHTML=renderList(sel,sel.search?sel.q:'');
     el.querySelectorAll('[data-f]').forEach(r=>r.onclick=()=>{const f=food(r.dataset.f);bg.remove();
+      if(onAdd){qtyPad(f,null,g=>onAdd(f,g),{noEdit:true,okLabel});return}
       qtyPad(f,null,g=>{const ex=fd.rec.find(l=>l.foodId===f.id);if(ex)ex.g+=g;else fd.rec.push({...ingCopy(f),g});fiche();toast(T(f.nom+' ajouté à la recette.',f.nom+': добавлено в рецепт.'))},{noEdit:true,okLabel:T('Ajouter à la recette','Добавить в рецепт')})})};
   draw();
 }
+/* noms réservés par l'appli (idée 51) : refusés pour une catégorie, dans les deux langues */
+const RESERVED=['Toutes','Tous','Tous mes aliments','Mes aliments','Mon repas','Repas types','Reprendre un repas noté','Dupliquer un repas','Préparations','Sans catégorie','À compléter','Archivés',
+  'Все','Все мои продукты','Мои продукты','Мой приём пищи','Типовые приёмы пищи','Дублировать приём пищи','Домашние блюда','Без категории','Дополнить','В архиве'].map(norm);
+const reserved=v=>RESERVED.includes(norm(String(v).trim()));
+const RES_MSG=()=>T('Ce nom est réservé par l\'application. Choisissez-en un autre.','Это название занято приложением. Выберите другое.');
 /* catégories : choisir (toucher = choisir) ; le crayon du haut passe en mode édition */
 function catPicker(){
   const bg=overlay('',`<div class="sheet" id="cs"></div>`);const sh=bg.querySelector('#cs');
@@ -754,7 +841,7 @@ function catPicker(){
         <div class="list catlist" style="margin-top:10px">${S.cats.map((c,i)=>`<div class="row ${fd.cat===c?'on':''}"><div class="main" data-c="${i}">${esc(c)}</div></div>`).join('')}
         <div class="row add" id="nc">${T('+ Nouvelle catégorie…','+ Новая категория…')}</div></div>`;
       sh.querySelectorAll('[data-c]').forEach(r=>r.onclick=()=>{fd.cat=S.cats[+r.dataset.c];bg.remove();fiche()});
-      sh.querySelector('#nc').onclick=()=>askText(T('Nouvelle catégorie','Новая категория'),'',T('Créer','Создать'),v=>{const ex=S.cats.find(c=>norm(c)===norm(v));if(ex)v=ex;else S.cats.push(v);save();fd.cat=v;bg.remove();fiche();toast(T('Catégorie « '+v+' » '+(ex?'choisie':'créée')+'.','Категория «'+v+'» '+(ex?'выбрана':'создана')+'.'))},T('ex. Soupes','напр. Супы'));
+      sh.querySelector('#nc').onclick=()=>askText(T('Nouvelle catégorie','Новая категория'),'',T('Créer','Создать'),v=>{if(reserved(v)){toast(RES_MSG());return}const ex=S.cats.find(c=>norm(c)===norm(v));if(ex)v=ex;else S.cats.push(v);save();fd.cat=v;bg.remove();fiche();toast(T('Catégorie « '+v+' » '+(ex?'choisie':'créée')+'.','Категория «'+v+'» '+(ex?'выбрана':'создана')+'.'))},T('ex. Soupes','напр. Супы'));
       sh.querySelector('#ce').onclick=()=>{edit=true;work=S.cats.map(c=>({old:c,val:c,del:false}));draw()};
     }else{
       sh.innerHTML=`<div class="sheet-h"><h3>${T('Modifier les catégories','Изменить категории')}</h3><button class="btn small" id="cd">${T('Terminé','Готово')}</button></div>
@@ -764,13 +851,13 @@ function catPicker(){
       sh.querySelectorAll('[data-w]').forEach(i=>i.oninput=e=>{work[+i.dataset.w].val=e.target.value});
       sh.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{work[+b.dataset.d].del=true;draw()});
       sh.querySelector('#cd').onclick=()=>{
-        const nv=sh.querySelector('#cn').value.trim(),next=[];
+        const nv=sh.querySelector('#cn').value.trim(),next=[];let refused=false;
         for(const w of work){if(w.del){if(fd.cat===w.old)fd.cat=null;continue}
-          let v=w.val.trim()||w.old;if(next.some(x=>norm(x)===norm(v)))v=w.old;
+          let v=w.val.trim()||w.old;if(v!==w.old&&reserved(v)){v=w.old;refused=true}if(next.some(x=>norm(x)===norm(v)))v=w.old;
           if(v!==w.old){S.foods.forEach(f=>{if(f.cat===w.old)f.cat=v});if(fd.cat===w.old)fd.cat=v}
           next.push(v)}
-        if(nv&&!next.some(x=>norm(x)===norm(nv)))next.push(nv);
-        S.cats=next;save();edit=false;draw();toast(T('Catégories enregistrées.','Категории сохранены.'));
+        if(nv&&reserved(nv))refused=true;else if(nv&&!next.some(x=>norm(x)===norm(nv)))next.push(nv);
+        S.cats=next;save();edit=false;draw();toast(refused?RES_MSG():T('Catégories enregistrées.','Категории сохранены.'));
       };
     }
   };
@@ -792,19 +879,37 @@ function weekStart(d){return addDays(d,-((parse(d).getDay()+6)%7))}
 function meter(v,goal,color,soft){const pct=goal?Math.min(100,v/goal*100):0;return `<div class="meter" style="background:${soft}"><span style="width:${pct}%;background:${color}"></span></div>`}
 function repas(){
   app.className='';
-  app.innerHTML=top(T('Mes repas','Мои приёмы пищи'))+`
-  <div class="seg"><button data-mo="jour" aria-pressed="${mode==='jour'}">${T('Jour','День')}</button><button data-mo="semaine" aria-pressed="${mode==='semaine'}">${T('Semaine','Неделя')}</button></div>
-  <div class="daynav"><button id="prev" aria-label="${T('Précédent','Назад')}">‹</button><label class="pickdate">${mode==='jour'?longDate(viewDate):T('Semaine du '+longDate(weekStart(viewDate)).toLowerCase(),'Неделя с '+dayMonth(weekStart(viewDate)))} ${ic.cal}<input type="date" id="pickD" value="${viewDate}" aria-label="${T('Choisir une date','Выбрать дату')}"></label><button id="next" aria-label="${T('Suivant','Вперёд')}">›</button></div>
-  <div id="body"></div>
-  <button class="btn ghost wide" id="types" style="margin-top:14px">${T('Mes repas types','Мои типовые приёмы пищи')}${S.models.length?' ('+S.models.length+')':''}</button>`;
+  app.innerHTML=top(T('Mon suivi','Мой дневник'))+`
+  <div class="seg three"><button data-mo="jour" aria-pressed="${mode==='jour'}">${T('Jour','День')}</button><button data-mo="semaine" aria-pressed="${mode==='semaine'}">${T('Semaine','Неделя')}</button><button data-mo="poids" aria-pressed="${mode==='poids'}">${T('Poids','Вес')}</button></div>
+  ${mode==='poids'?'':`<div class="daynav"><button id="prev" aria-label="${T('Précédent','Назад')}">‹</button><label class="pickdate">${mode==='jour'?longDate(viewDate):T('Semaine du '+longDate(weekStart(viewDate)).toLowerCase(),'Неделя с '+dayMonth(weekStart(viewDate)))} ${ic.cal}<input type="date" id="pickD" value="${viewDate}" aria-label="${T('Choisir une date','Выбрать дату')}"></label><button id="next" aria-label="${T('Suivant','Вперёд')}">›</button></div>`}
+  <div id="body"></div>`;
   bind();
   app.querySelectorAll('[data-mo]').forEach(b=>b.onclick=()=>{mode=b.dataset.mo;repas()});
+  if(mode==='poids'){weightBody();return}
   $('#prev').onclick=()=>{viewDate=addDays(viewDate,mode==='jour'?-1:-7);repas()};
   $('#next').onclick=()=>{viewDate=addDays(viewDate,mode==='jour'?1:7);repas()};
   $('#pickD').onchange=e=>{if(e.target.value){viewDate=e.target.value;repas()}};
   $('#pickD').onclick=e=>{try{e.target.showPicker()}catch(_){}};
-  $('#types').onclick=()=>go('types');
   if(mode==='jour')dayBody();else weekBody();
+}
+/* corriger ou supprimer une pesée (Mon suivi : Jour et Poids) */
+function editWeight(x,after){
+  numpad({title:T('Modifier la pesée','Изменить взвешивание'),sub:T('Changez le poids ou la date.','Измените вес или дату.'),value:x.kg,unit:KG,date:x.date,okLabel:T('Enregistrer','Сохранить'),done:(v,d)=>{
+    if(v<30||v>300){toast(T('Poids non valable : ','Неверный вес: ')+nf1(v)+' '+KG+'.');return}
+    x.kg=v;if(d&&d!==x.date){x.date=d;x.time=''}applyCalc();save();toast(T('Pesée modifiée.','Изменено.'));after&&after()}});
+}
+function delWeight(x,after){
+  ask(T('Supprimer cette pesée ?','Удалить это взвешивание?'),nf1(x.kg)+' '+KG+', '+T(longDate(x.date).toLowerCase(),dayMonth(x.date))+'.',[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.weights=S.weights.filter(z=>z!==x);applyCalc();save();after&&after()}},{label:T('Non','Нет'),cls:'ghost'}]);
+}
+/* Poids : la courbe et les 10 dernières pesées, dans l'ordre chronologique (la plus récente en bas) */
+function weightBody(){
+  const w=lastWeight();
+  $('#body').innerHTML=`<div class="card">${w?`<p style="margin:0">${T('Dernière pesée','Последнее взвешивание')}${SEP}<b>${nf1(w.kg)} ${KG}</b>, ${T(longDate(w.date).toLowerCase(),dayMonth(w.date))}.</p>`:'<p class="muted" style="margin:0">'+T('Aucune pesée pour l\'instant.','Взвешиваний пока нет.')+'</p>'}
+    ${weightChart()}
+    ${S.weights.length?`<div class="list" style="margin-top:8px">${[...S.weights].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,10).reverse().map(x=>`<div class="row"><div class="main" style="cursor:default">${nf1(x.kg)} ${KG} <span class="muted">· ${T(longDate(x.date).toLowerCase(),dayMonth(x.date))}${x.time?T(' à ',', ')+fmtT(x.time):''}</span></div><button class="ico" data-ew="${x.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button><button class="ico del" data-dw="${x.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>`).join('')}</div>`:''}
+    <p class="muted" style="margin-bottom:0">${T('Pesez-vous au réveil, après avoir dormi normalement, à jeun : une pesée après une nuit courte ou blanche trompe. Une nouvelle pesée se note dans Noter › Mon poids ; un rappel s\'affiche sur l\'accueil une semaine après la dernière.','Взвешивайтесь сразу после сна, если вы нормально выспались, натощак: после короткой или бессонной ночи весы обманывают. Новое взвешивание записывается в «Записать › Мой вес»; через неделю после последнего на главном экране появится напоминание.')}</p></div>`;
+  app.querySelectorAll('[data-ew]').forEach(b=>b.onclick=()=>editWeight(S.weights.find(z=>z.id===b.dataset.ew),repas));
+  app.querySelectorAll('[data-dw]').forEach(b=>b.onclick=()=>delWeight(S.weights.find(z=>z.id===b.dataset.dw),repas));
 }
 /* jauges : calories puis nutriments suivis, deux par rangée ; « * » = un aliment n'a pas la valeur */
 function gaugesHtml(items){
@@ -813,26 +918,27 @@ function gaugesHtml(items){
     return `<div><div><span class="big" style="color:var(--${k})">${nv(k,s.v)}${s.miss?'*':''}</span> <span class="unit">${g==null?NUTS[k].unit+' '+NUTS[k].gen:goalTxt(k)}</span></div>${g==null?'':meter(s.v,g,'var(--'+k+')','var(--'+k+'-soft)')}</div>`}).join('');
   const kc=G.kcal?`<span class="unit">/ ${nf(G.kcal)} ${KCAL}</span></div>${meter(t.k,G.kcal,'var(--kcal)','var(--kcal-soft)')}`:`<span class="unit">${KCAL}</span></div><div class="unit">${T('Objectif : remplissez votre Profil.','Цель: заполните Профиль.')}</div>`;
   return `<div class="gauges"><div><div><span class="big" style="color:var(--kcal)">${nf(t.k)}</span> ${kc}</div>${h}</div>`+
-    (miss?`<p class="muted" style="margin:-4px 0 10px">${T('* incomplet : un aliment n\'a pas encore cette valeur (Mes aliments › À compléter).','* неполные данные: у продукта ещё нет этого значения (Мои продукты › Дополнить).')}</p>`:'');
+    (miss?`<p class="muted" style="margin:-4px 0 10px">${T('* incomplet : un aliment n\'a pas encore cette valeur (Noter › Gérer mes aliments › À compléter).','* неполные данные: у продукта ещё нет этого значения (Записать › Управление продуктами › Дополнить).')}</p>`:'');
 }
 const evtHtml=e=>`<div class="evt"><div class="t"><b>${fmtT(e.time)} · ${EVT[e.kind]}</b>${e.text?SEP+esc(e.text):''}</div><button class="ico" data-ee="${e.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button><button class="ico del" data-de="${e.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>`;
 function dayBody(){
   const ms=S.meals.filter(m=>m.date===viewDate),isToday=viewDate===todayIso();
-  const evs=S.notes.filter(e=>e.date===viewDate);
-  /* repas, notes, lever et coucher dans l'ordre de l'heure */
-  const all=[...ms.map(m=>({t:m.time,m})),...evs.map(e=>({t:e.time,e}))].sort((a,b)=>(a.t||'99').localeCompare(b.t||'99'));
+  const evs=S.notes.filter(e=>e.date===viewDate),wts=S.weights.filter(w=>w.date===viewDate);
+  /* repas, notes, pesées, lever et coucher dans l'ordre de l'heure ; chacun se corrige sur place (crayon) */
+  const all=[...ms.map(m=>({t:m.time,m})),...evs.map(e=>({t:e.time,e})),...wts.map(w=>({t:w.time,w}))].sort((a,b)=>(a.t||'99').localeCompare(b.t||'99'));
   $('#body').innerHTML=gaugesHtml(ms.flatMap(m=>m.items))+
-  (all.length?all.map(x=>{if(x.e)return evtHtml(x.e);const m=x.m,s=sum(m.items),nl=TR().map(k=>sumTxt(m.items,k)).join(' · ');return `<div class="meal"><div class="meal-h"><div class="t">${fmtT(m.time)} <span>· ${nf(s.k)} ${KCAL}${nl?' · '+nl:''}</span></div>
+  (all.length?all.map(x=>{if(x.e)return evtHtml(x.e);
+    if(x.w)return `<div class="evt"><div class="t"><b>${fmtT(x.w.time)} · ${T('Poids','Вес')}</b>${SEP}${nf1(x.w.kg)} ${KG}</div><button class="ico" data-ew="${x.w.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button><button class="ico del" data-dw="${x.w.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>`;
+    const m=x.m,s=sum(m.items),nl=TR().map(k=>sumTxt(m.items,k)).join(' · ');return `<div class="meal"><div class="meal-h"><div class="t">${fmtT(m.time)} <span>· ${nf(s.k)} ${KCAL}${nl?' · '+nl:''}</span></div>
     <button class="ico" data-ed="${m.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button><button class="ico del" data-dl="${m.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>
     ${m.items.map(l=>{const f=food(l.foodId);return `<div class="row"><div class="main" style="cursor:default">${esc(f?f.nom:'?')}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} ${KCAL}</div></div>`}).join('')}</div>`}).join('')
-   :'<p class="muted">'+T('Aucun repas noté ce jour-là.','В этот день записей нет.')+'</p>')+
-  (viewDate<=todayIso()?`<button class="btn ghost wide" id="addHere" style="margin-top:6px">${isToday?T('+ Noter un repas aujourd\'hui','+ Записать приём пищи сегодня'):T('+ Noter un repas ce jour-là','+ Записать приём пищи в этот день')}</button>
-    ${evtChips().replace('class="chips"','class="chips" style="margin-top:10px;justify-content:center"')}`:'');
+   :'<p class="muted">'+T('Rien de noté ce jour-là.','В этот день записей нет.')+'</p>')+
+  `<p class="muted" style="text-align:center">${T('Pour ajouter : Noter (la date se change dans Mon repas).','Чтобы добавить: «Записать» (дату можно изменить в «Мой приём пищи»).')}</p>`;
+  app.querySelectorAll('[data-ew]').forEach(b=>b.onclick=()=>editWeight(S.weights.find(z=>z.id===b.dataset.ew),repas));
+  app.querySelectorAll('[data-dw]').forEach(b=>b.onclick=()=>delWeight(S.weights.find(z=>z.id===b.dataset.dw),repas));
   app.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{const m=S.meals.find(x=>x.id===b.dataset.ed);enterNoter(()=>({editId:m.id,date:m.date,time:m.time||'',items:m.items.map(l=>({...l}))}))});
   app.querySelectorAll('[data-dl]').forEach(b=>b.onclick=()=>{const m=S.meals.find(x=>x.id===b.dataset.dl);
     ask(T('Supprimer ce repas ?','Удалить этот приём пищи?'),T((m.time?'Repas de '+fmtT(m.time):'Repas sans heure')+', '+longDate(m.date).toLowerCase()+'.',fmtT(m.time)+', '+dayMonth(m.date)+'.'),[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.meals=S.meals.filter(x=>x!==m);save();repas()}},{label:T('Non','Нет'),cls:'ghost'}])});
-  const ah=$('#addHere');if(ah)ah.onclick=()=>startNoter(viewDate);
-  app.querySelectorAll('#body [data-ev]').forEach(b=>b.onclick=()=>evtSheet(b.dataset.ev,viewDate,isToday?hm():'',repas,null));
   app.querySelectorAll('[data-ee]').forEach(b=>b.onclick=()=>{const e=S.notes.find(x=>x.id===b.dataset.ee);evtSheet(e.kind,e.date,e.time,repas,e)});
   app.querySelectorAll('[data-de]').forEach(b=>b.onclick=()=>{const e=S.notes.find(x=>x.id===b.dataset.de);
     ask(T('Supprimer ?','Удалить?'),T(EVT[e.kind]+' de '+fmtT(e.time)+', '+longDate(e.date).toLowerCase()+'.',EVT[e.kind]+', '+fmtT(e.time)+', '+dayMonth(e.date)+'.'),[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.notes=S.notes.filter(x=>x!==e);save();repas()}},{label:T('Non','Нет'),cls:'ghost'}])});
@@ -862,27 +968,47 @@ function weekBody(){
   app.querySelectorAll('[data-day]').forEach(c=>c.onclick=()=>{viewDate=c.dataset.day;mode='jour';repas()});
 }
 /* repas types */
+/* repas types (lot 2, étape 4) : toucher la ligne = noter ce repas aujourd'hui ; crayon = modifier sur place */
 function types(){
   app.className='';
   const ms=[...S.models].sort(byName);
-  app.innerHTML=top(T('Mes repas types','Типовые приёмы пищи'))+`
-   <p class="muted">${T('Un repas type se crée depuis « Noter un repas » : composez le repas, puis « ☆ Garder comme repas type ». Il ne compte pas dans vos repas.','Типовой приём пищи создаётся при записи: составьте его, затем «☆ Сохранить как типовой». Он не считается в ваших записях.')}</p>
-   <div class="list">${ms.length?ms.map(m=>`<div class="row"><div class="main" data-t="${m.id}"><div class="name">${esc(m.nom)}</div><div class="vals">${[T(m.items.length+' aliment'+(m.items.length>1?'s':''),'продуктов: '+m.items.length),nf(sum(m.items).k)+' '+KCAL,...TR().map(k=>sumTxt(m.items,k))].join(' · ')}</div></div></div>`).join(''):'<div class="row muted">'+T('Aucun repas type pour l\'instant.','Типовых пока нет.')+'</div>'}</div>`;
+  app.innerHTML=top(T('Repas types','Типовые приёмы пищи'))+`
+   <p class="muted">${T('Touchez un repas type pour le noter aujourd\'hui (vous pourrez encore le changer avant d\'enregistrer). Le crayon le modifie. Vous pouvez aussi garder un repas en cours comme repas type (« ☆ Garder comme repas type »). Un repas type ne compte pas dans vos repas.','Нажмите на типовой, чтобы записать его на сегодня (до сохранения его можно изменить). Карандаш — изменить типовой. Текущий приём пищи тоже можно сохранить как типовой («☆ Сохранить как типовой»). Типовой не считается в ваших записях.')}</p>
+   <div class="list">${ms.length?ms.map(m=>`<div class="row"><div class="main" data-t="${m.id}" style="cursor:pointer"><div class="name">${esc(m.nom)}</div><div class="vals">${[T(m.items.length+' aliment'+(m.items.length>1?'s':''),'продуктов: '+m.items.length),nf(sum(m.items).k)+' '+KCAL,...TR().map(k=>sumTxt(m.items,k))].join(' · ')}</div></div><button class="ico" data-te="${m.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button></div>`).join(''):'<div class="row muted">'+T('Aucun repas type pour l\'instant.','Типовых пока нет.')+'</div>'}</div>
+   <button class="btn ghost wide" id="tNew" style="margin-top:12px">${T('+ Nouveau repas type','+ Новый типовой')}</button>`;
   bind();
-  app.querySelectorAll('[data-t]').forEach(r=>r.onclick=()=>typeSheet(S.models.find(x=>x.id===r.dataset.t)));
+  app.querySelectorAll('[data-t]').forEach(r=>r.onclick=()=>{const m=S.models.find(x=>x.id===r.dataset.t);startWith(m.items,T('« '+m.nom+' » ajouté.','«'+m.nom+'» добавлен.'))});
+  app.querySelectorAll('[data-te]').forEach(b=>b.onclick=()=>{tEdit=null;go('typeEdit',{typeId:b.dataset.te})});
+  $('#tNew').onclick=()=>{tEdit=null;go('typeEdit',{typeId:null})};
 }
-function typeSheet(m){
-  const s=sum(m.items);
-  const bg=overlay('',`<div class="sheet"><h3>${T('Repas type','Типовой приём пищи')}</h3><label for="tn">${T('Nom','Название')}</label><input id="tn" value="${esc(m.nom)}" maxlength="40" autocomplete="off">
-   <label>${T('Contenu','Состав')}</label><div class="list">${m.items.map(l=>{const f=food(l.foodId);return `<div class="row"><div class="main" style="cursor:default">${esc(f?f.nom:'?')}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} ${KCAL}</div></div>`}).join('')}</div>
-   <div class="tot"><span class="k">${nf(s.k)} ${KCAL}</span>${TR().map(k=>`<span style="color:var(--${k})">${sumTxt(m.items,k)}</span>`).join('')}</div>
-   <p class="muted">${T('Pour changer son contenu : notez un repas avec ce repas type, corrigez-le, puis gardez-le comme repas type sous le même nom.','Чтобы изменить состав: запишите приём пищи с этим типовым, исправьте его и сохраните как типовой под тем же названием.')}</p>
-   <div class="grid3"><button class="btn ghost" id="tx">${T('Annuler','Отмена')}</button><button class="btn warn" id="td">${T('Supprimer','Удалить')}</button><button class="btn" id="ts">${T('Enregistrer','Сохранить')}</button></div></div>`);
-  bg.querySelector('#tx').onclick=()=>bg.remove();
-  bg.querySelector('#td').onclick=()=>{bg.remove();ask(T('Supprimer « '+esc(m.nom)+' » ?','Удалить «'+esc(m.nom)+'»?'),T('Vos repas déjà notés ne changent pas.','Уже записанные приёмы пищи не изменятся.'),[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.models=S.models.filter(x=>x!==m);save();types();toast(T('Repas type supprimé.','Удалено.'))}},{label:T('Non','Нет'),cls:'ghost'}])};
-  bg.querySelector('#ts').onclick=()=>{const n=bg.querySelector('#tn').value.trim();if(!n)return;
-    if(S.models.some(x=>x!==m&&norm(x.nom)===norm(n))){toast(T('Un repas type porte déjà ce nom.','Типовой с таким названием уже есть.'));return}
-    m.nom=n;save();bg.remove();types();toast(T('Repas type enregistré.','Сохранено.'))};
+/* modification d'un repas type : on travaille sur une copie ; rien n'est enregistré avant « Enregistrer » */
+let tEdit=null;
+function typeEdit(){
+  app.className='';
+  const src=state.typeId?S.models.find(x=>x.id===state.typeId):null;
+  if(!tEdit)tEdit={nom:src?src.nom:'',items:src?src.items.map(l=>({foodId:l.foodId,g:l.g})):[]};
+  const its=tEdit.items.filter(l=>food(l.foodId)),s=sum(its);
+  app.innerHTML=top(src?T('Modifier le repas type','Изменить типовой'):T('Nouveau repas type','Новый типовой'))+`
+   <div class="card"><label for="tn" style="margin-top:0">${T('Nom','Название')}</label><input id="tn" value="${esc(tEdit.nom)}" maxlength="40" autocomplete="off" placeholder="${T('Par exemple : Petit déjeuner','Например: Завтрак')}"></div>
+   <div class="list">${its.length?its.map(l=>{const f=food(l.foodId),i=tEdit.items.indexOf(l);return `<div class="row"><div class="main" data-q="${i}" style="cursor:pointer"><div class="name">${esc(f.nom)}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} ${KCAL}${TR().map(k=>{const v=nget(f,k);return v==null?'':' · '+nv(k,v*l.g/100)+' '+NUTS[k].unit+' '+NUTS[k].short}).join('')}</div></div><button class="ico del" data-x="${i}" aria-label="${T('Retirer','Убрать')}">${ic.del}</button></div>`}).join(''):'<div class="row muted">'+T('Aucun aliment pour l\'instant.','Продуктов пока нет.')+'</div>'}</div>
+   <button class="btn ghost wide" id="tAdd" style="margin-top:10px">${T('+ Ajouter un aliment','+ Добавить продукт')}</button>
+   ${its.length?`<div class="tot"><span class="k">${nf(s.k)} ${KCAL}</span>${TR().map(k=>`<span style="color:var(--${k})">${sumTxt(its,k)}</span>`).join('')}</div>`:''}
+   <p class="muted">${T('Touchez un aliment pour changer sa quantité. Vos repas déjà notés ne changent pas.','Нажмите на продукт, чтобы изменить количество. Уже записанные приёмы пищи не изменятся.')}</p>
+   <div class="${src?'grid3':'grid2'}" style="margin-top:8px"><button class="btn ghost" id="tx">${T('Annuler','Отмена')}</button>${src?`<button class="btn warn" id="td">${T('Supprimer','Удалить')}</button>`:''}<button class="btn" id="ts">${T('Enregistrer','Сохранить')}</button></div>`;
+  bind();
+  $('#tn').oninput=e=>{tEdit.nom=e.target.value};
+  app.querySelectorAll('[data-q]').forEach(r=>r.onclick=()=>{const l=tEdit.items[+r.dataset.q];qtyPad(food(l.foodId),l.g,g=>{l.g=g;typeEdit()},{noEdit:true})});
+  app.querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{tEdit.items.splice(+b.dataset.x,1);typeEdit()});
+  $('#tAdd').onclick=()=>ingredientPicker(null,(f,g)=>{const ex=tEdit.items.find(l=>l.foodId===f.id);if(ex)ex.g+=g;else tEdit.items.push({foodId:f.id,g});typeEdit();toast(T(f.nom+' ajouté.',f.nom+': добавлено.'))},T('Ajouter un aliment','Добавить продукт'),T('Ajouter au repas type','Добавить в типовой'));
+  const leave=()=>{tEdit=null;navBack()};
+  $('#tx').onclick=leave;
+  const td=$('#td');if(td)td.onclick=()=>ask(T('Supprimer « '+esc(src.nom)+' » ?','Удалить «'+esc(src.nom)+'»?'),T('Vos repas déjà notés ne changent pas.','Уже записанные приёмы пищи не изменятся.'),[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.models=S.models.filter(x=>x!==src);save();toast(T('Repas type supprimé.','Удалено.'));leave()}},{label:T('Non','Нет'),cls:'ghost'}]);
+  $('#ts').onclick=()=>{const n=tEdit.nom.trim(),items=tEdit.items.filter(l=>food(l.foodId)).map(l=>({foodId:l.foodId,g:l.g}));
+    if(!n){toast(T('Donnez un nom au repas type.','Дайте типовому название.'));$('#tn').focus();return}
+    if(!items.length){toast(T('Ajoutez au moins un aliment.','Добавьте хотя бы один продукт.'));return}
+    if(S.models.some(x=>x!==src&&norm(x.nom)===norm(n))){toast(T('Un repas type porte déjà ce nom.','Типовой с таким названием уже есть.'));return}
+    if(src){src.nom=n;src.items=items}else S.models.push({id:uid(),nom:n,items});
+    save();toast(T('Repas type « '+n+' » enregistré.','Типовой «'+n+'» сохранён.'));leave()};
 }
 
 /* ================= ANALYSE (export pour une IA) ================= */
@@ -946,7 +1072,7 @@ function analyse(){
    <p class="muted">${T('Du '+longDate(a).toLowerCase()+' au '+longDate(b).toLowerCase()+' · '+n+' repas.','С '+dayMonth(a)+' по '+dayMonth(b)+' · приёмов пищи: '+n+'.')}</p>
    <label for="qq">${T('Ma situation, ma question (facultatif)','Моя ситуация, мой вопрос (необязательно)')}</label>
    <textarea id="qq" rows="4" maxlength="800" placeholder="${T('ex. J\'ai 72 ans, je prends un anticoagulant. Je voudrais perdre 5 kg sans manquer de protéines. Que faut-il changer ?','напр. Мне 65 лет, у меня повышенное давление. Хочу похудеть на 5 кг без недостатка белка. Что изменить?')}">${esc(store.get(KEY+'.question')||'')}</textarea>
-   ${hasN?`<label class="chk" style="padding:10px 0 0;border:0"><input type="checkbox" id="anN" ${anaNotes?'checked':''}><span>${T('Envoyer aussi mes notes personnelles','Отправить и мои личные заметки')}</span></label>`:''}
+   ${hasN?`<label class="chk" style="padding:10px 0 0;border:0"><input type="checkbox" id="anN" ${anaNotes?'checked':''}><span>${T('Envoyer aussi mes notes personnelles','Отправить мои личные заметки')}</span></label>`:''}
    <button class="btn wide" id="copyA" style="margin-top:12px">${T('Copier pour une IA','Скопировать для ИИ')}</button>
    ${navigator.share?'<button class="btn ghost wide" id="shareA" style="margin-top:8px">'+T('Partager vers une appli…','Отправить в приложение…')+'</button>':''}
    <div id="aout"></div>`;
@@ -1103,6 +1229,8 @@ function profil(){
   const todo=missingFoods().length;
   app.innerHTML=top(T('Profil','Профиль'))+`
    <div class="card"><h2 style="margin-top:0">${T('Moi','Обо мне')}</h2>
+    <label for="pnom" style="margin-top:0">${T('Nom ou pseudonyme (facultatif)','Имя или псевдоним (необязательно)')}</label><input id="pnom" maxlength="30" value="${esc(p.nom||'')}" placeholder="${T('ex. Christian','напр. Татьяна')}" autocomplete="off">
+    <p class="muted" style="margin:4px 0 12px">${T('Il s\'affiche sur l\'accueil et personnalise quelques messages. Il reste sur votre téléphone.','Оно показывается на главном экране и в некоторых сообщениях. Оно остаётся в вашем телефоне.')}</p>
     <div class="grid2" style="gap:12px"><button class="choice" data-sx="H" aria-pressed="${p.sexe==='H'}">${T('Homme','Мужчина')}</button><button class="choice" data-sx="F" aria-pressed="${p.sexe==='F'}">${T('Femme','Женщина')}</button></div>
     <div class="grid2"><div><label>${T('Année de naissance','Год рождения')}</label>${nfield('pan',p.an,p.an+(ageOf(p)?' ('+ageOf(p)+T(' ans',' лет')+')':''),FILL)}</div><div><label>${T('Taille','Рост')}</label>${nfield('pta',p.taille,nf(p.taille)+T(' cm',' см'),FILL)}</div></div>
     <div class="grid2"><div><label>${T('Poids actuel','Текущий вес')}</label>${nfield('pw',w?w.kg:null,w?nf1(w.kg)+' '+KG:'',FILL)}</div><div><label>${T('Poids cible (facultatif)','Целевой вес (необязательно)')}</label>${nfield('pci',p.cible,nf1(p.cible)+' '+KG,T('aucun','нет'))}</div></div>
@@ -1117,14 +1245,13 @@ function profil(){
    <div class="card"><label class="chk" style="padding:0 0 6px"><input type="checkbox" id="slp" ${p.sommeil?'checked':''}><span><b>${T('Mon sommeil','Мой сон')}</b><span class="sub">${T('Le manque de sommeil augmente l\'appétit. Cochez cette case pour noter l\'heure de votre lever et de votre coucher avec vos repas : une IA pourra faire le lien avec ce que vous mangez.','Недосып усиливает аппетит. Отметьте, чтобы записывать время подъёма и отбоя рядом с приёмами пищи: ИИ сможет связать сон с питанием.')}</span></span></label></div>
    <div class="card"><label class="chk" style="padding:0 0 6px"><input type="checkbox" id="nts" ${p.notes?'checked':''}><span><b>${T('Mes notes personnelles','Мои личные заметки')}</b><span class="sub">${T('Cochez cette case pour écrire quelques mots datés entre vos repas, comme un petit journal. Elles restent sur votre téléphone : l\'export pour une IA ne les envoie que si vous le demandez.','Отметьте, чтобы записывать между приёмами пищи несколько слов с датой, как в дневнике. Они остаются в телефоне: в экспорт для ИИ они попадут, только если вы этого захотите.')}</span></span></label></div>
    <div class="card"><h2 style="margin-top:0">${T('Mon poids','Мой вес')}</h2>
-    ${w?`<p style="margin:0">${T('Dernière pesée','Последнее взвешивание')}${SEP}<b>${nf1(w.kg)} ${KG}</b>, ${T(longDate(w.date).toLowerCase(),dayMonth(w.date))}.</p>`:'<p class="muted" style="margin:0">'+T('Aucune pesée pour l\'instant.','Взвешиваний пока нет.')+'</p>'}
-    <button class="btn wide" id="addW" style="margin-top:10px">${T('+ Noter mon poids','+ Записать вес')}</button>
-    <p class="muted">${T('Au réveil, après avoir dormi normalement, à jeun : une pesée après une nuit courte ou blanche trompe. Un rappel s\'affiche sur l\'accueil une semaine après votre dernière pesée.','Сразу после сна, если вы нормально выспались, натощак: после короткой или бессонной ночи весы обманывают. Через неделю после последнего взвешивания на главном экране появится напоминание.')}</p>
-    ${weightChart()}
-    ${S.weights.length?`<div class="list" style="margin-top:8px">${[...S.weights].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).slice(0,10).reverse().map(x=>`<div class="row"><div class="main" style="cursor:default">${nf1(x.kg)} ${KG} <span class="muted">· ${T(longDate(x.date).toLowerCase(),dayMonth(x.date))}${x.time?T(' à ',', ')+fmtT(x.time):''}</span></div><button class="ico del" data-dw="${x.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>`).join('')}</div>`:''}</div>
+    <p class="muted" style="margin:0">${T('La courbe et la liste de vos pesées sont dans Mon suivi › Poids. Une nouvelle pesée se note dans Noter › Mon poids.','График и список взвешиваний — в «Мой дневник › Вес». Новое взвешивание записывается в «Записать › Мой вес».')}</p>
+    <button class="btn ghost wide" id="goW" style="margin-top:10px">${T('Voir mes pesées','Мои взвешивания')}</button></div>
    <div class="card"><label for="lang">${T('Langue','Язык')}</label><select id="lang"><option value="fr" ${LANG==='fr'?'selected':''}>Français</option><option value="ru" ${LANG==='ru'?'selected':''}>Русский</option></select></div>`;
   bind();window.scrollTo(0,sy);
   const set=(k,v)=>{p[k]=v;applyCalc();save();profil()};
+  /* le nom s'enregistre à chaque lettre, sans redessiner la page (le clavier reste ouvert) ; ajout du 15/11/2026 dans le profil */
+  $('#pnom').oninput=e=>{const v=e.target.value.trim();if(v)p.nom=v;else delete p.nom;save()};
   app.querySelectorAll('[data-sx]').forEach(b=>b.onclick=()=>set('sexe',b.dataset.sx));
   $('#pan').onclick=()=>numpad({title:T('Année de naissance','Год рождения'),value:p.an,unit:'',okLabel:'OK',done:v=>{v=Math.round(v);if(v<1900||v>new Date().getFullYear()-10){toast(T('Année non valable.','Неверный год.'));return}set('an',v)}});
   $('#pta').onclick=()=>numpad({title:T('Taille','Рост'),value:p.taille,unit:T('cm','см'),okLabel:'OK',done:v=>{if(v<100||v>250){toast(T('Taille en centimètres, par exemple 174.','Рост в сантиметрах, например 168.'));return}set('taille',Math.round(v))}});
@@ -1150,35 +1277,74 @@ function profil(){
   $('#slp').onchange=e=>{p.sommeil=e.target.checked;save();profil()};
   /* décocher n'efface aucune note : elles restent visibles dans Mes repas et dans la sauvegarde */
   $('#nts').onchange=e=>{p.notes=e.target.checked;save();profil()};
-  $('#addW').onclick=()=>addWeight(profil);
-  app.querySelectorAll('[data-dw]').forEach(b=>b.onclick=()=>{const x=S.weights.find(z=>z.id===b.dataset.dw);
-    ask(T('Supprimer cette pesée ?','Удалить это взвешивание?'),nf1(x.kg)+' '+KG+', '+T(longDate(x.date).toLowerCase(),dayMonth(x.date))+'.',[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.weights=S.weights.filter(z=>z!==x);applyCalc();save();profil()}},{label:T('Non','Нет'),cls:'ghost'}])});
+  $('#goW').onclick=()=>{mode='poids';go('repas')};
+}
+
+/* ================= AUTRES APPLICATIONS (modèle RAZ 5.3, textes de Modele_5.3_textes.md) ================= */
+const APPS=[
+  ['com.eboops.cr2rt',T('Carnet Répertoire 2 – Un traitement de texte dans votre carnet','Записная книжка 2 – Текстовый редактор в вашей записной книжке'),
+   T('Un carnet répertoire à la présentation différente, qui permet surtout de mettre en forme vos notes : choisissez la police, la taille et la couleur du texte, surlignez, mettez en gras, en italique ou souligné, faites des listes à puces ou numérotées, alignez à gauche, au centre ou à droite, et revenez en arrière d\'un geste.','Записная книжка с другим внешним видом, в которой прежде всего можно оформлять заметки: выбирайте шрифт, размер и цвет текста, выделяйте цветом, используйте жирный шрифт, курсив или подчёркивание, создавайте маркированные и нумерованные списки, выравнивайте текст по левому краю, по центру или по правому краю и отменяйте изменения одним касанием.')],
+  ['com.eboops.lexicraft',T('LexiCraft – Votre carnet de vocabulaire','LexiCraft – Ваш блокнот для слов'),
+   T('Vous apprenez une langue étrangère, pour vos études ou pour voyager ? Avec LexiCraft, c\'est vous qui rédigez votre carnet de vocabulaire et de grammaire. Noter vous-même vos mots et les ranger dans vos catégories engage activement la mémoire. Classement alphabétique automatique, tri par catégorie, recherche rapide, filtres (mots appris, mots à apprendre…), suivi de vos progrès et prononciation avec lecture ralentie. Sans publicité, utilisable sans connexion.','Изучаете иностранный язык — для учёбы или для путешествий? В LexiCraft вы сами ведёте свой блокнот слов и грамматики. Когда вы сами записываете слова и раскладываете их по своим категориям, память работает активнее. Автоматическая сортировка по алфавиту, сортировка по категориям, быстрый поиск, фильтры (выученные слова, слова для изучения…), отслеживание прогресса и произношение с замедленным воспроизведением. Без рекламы, работает без интернета.')],
+  ['com.eboops.motif',T('Motif – Jeu de réflexion','Motif – Логическая игра'),
+   T('Un nouveau jeu de réflexion, de 7 à 77 ans… et même au-delà. Reliez des symboles et créez des motifs qui se répètent : facile à prendre en main, Motif demande une vraie réflexion dès qu\'on vise les gros scores. Jouez le temps que vous voulez, vous retrouverez votre partie exactement où vous l\'aviez laissée. Entièrement gratuit : sans publicité, sans inscription, sans achat intégré, et utilisable sans connexion.','Новая логическая игра для любого возраста. Соединяйте символы и создавайте повторяющиеся узоры: освоить игру легко, но чтобы набрать много очков, придётся по-настоящему подумать. Играйте сколько хотите — вы вернётесь к партии ровно там, где остановились. Полностью бесплатно: без рекламы, без регистрации, без встроенных покупок, работает без интернета.')]];
+function applis(){
+  app.className='';
+  app.innerHTML=top(T('Autres applications eBoops','Другие приложения eBoops'))+APPS.map(([id,nom,txt])=>`<div class="card appcard"><div class="txt"><h3>${nom}</h3><p>${txt}</p>
+    <a class="btn ghost small" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener" href="https://play.google.com/store/apps/details?id=${id}&amp;referrer=utm_source%3Dautres_apps%26utm_medium%3Dnn">${T('Ouvrir dans le Play Store','Открыть в Play Маркете')}</a></div></div>`).join('');
+  bind();
+}
+/* « Offrir un café » : achat intégré de la version Android ; ici, une page d'attente */
+function cafe(){
+  app.className='';
+  app.innerHTML=top(T('Offrir un café','Угостить кофе'))+`<div class="card"><p style="margin-top:0">${T('NutriNote est gratuit, sans compte et sans publicité. Si l\'application vous aide, vous pourrez bientôt soutenir son développement en offrant un café, depuis la version Android.','NutriNote бесплатное, без регистрации и без рекламы. Если приложение вам помогает, скоро вы сможете поддержать его развитие, угостив нас кофе, в версии для Android.')}</p><p class="muted" style="margin-bottom:0">${T('Bientôt','Скоро')}</p></div>`;
+  bind();
 }
 
 /* ================= AIDE ================= */
+const VERSION='2026-11-15';   /* date de la version : à changer à chaque mise en ligne (idée 50) */
 function aide(){
   app.className='';
-  app.innerHTML=top(T('Aide','Помощь'))+`<div class="card help"><ul style="padding-left:18px;margin:0">${T(`
-   <li><b>Noter un repas</b> : choisissez une catégorie, touchez un aliment, tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. Puis « Enregistrer le repas ».</li>
-   <li>Une valeur fausse sur l'emballage ? Dans le pavé, le petit crayon corrige les calories et protéines de l'aliment.</li>
-   <li><b>Repas types</b> : un repas que vous mangez souvent se garde avec « ☆ Garder comme repas type », puis se retrouve dans « Repas types ».</li>
-   <li><b>Mes aliments</b> : créer un aliment ou une préparation (recette maison), corriger une fiche, archiver un aliment que vous n'utilisez plus (bouton « Archiver » sur sa fiche ; il reste dans « Archivés »).</li>
-   <li><b>Mes repas</b> : le résultat du jour ou de la semaine. Le crayon rouvre un repas pour le corriger. Touchez la date pour ouvrir le calendrier.</li>
-   <li><b>Reprendre un repas noté</b> (dans la liste des catégories de Noter) : choisissez un repas d'un autre jour, ses aliments s'ajoutent au repas en cours. Pratique pour des restes.</li>
-   <li><b>+ Note</b> (dans Noter ou Mes repas, avec la case Notes personnelles du profil) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). Avec la case Sommeil du profil : <b>+ Lever</b> et <b>+ Coucher</b>.</li>
-   <li><b>Profil</b> : vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, et votre poids (au réveil, après avoir dormi normalement, à jeun ; changez la date pour une pesée d'un autre jour). Tout s'enregistre au fur et à mesure. Un nutriment ajouté se saisit dans vos aliments : voir Mes aliments › À compléter. La langue se choisit en bas du Profil.</li>
+  const vd=new Date(VERSION+'T12:00').toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'});
+  const nom=esc((S.profile.nom||'').trim());
+  /* aide réécrite au lot 2 (étape 5) : l'ordre suit l'appli, Noter pour créer, Mon suivi pour relire et corriger */
+  app.innerHTML=top(T('Aide','Помощь'))+`<p class="muted" style="margin:0 4px 8px">${T('Version du '+vd,'Версия от '+vd)}</p><div class="card help">${T(`
+   <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger.</p>
+   <h3>Noter</h3><ul style="padding-left:18px">
+   <li><b>Mon repas</b> : touchez « Mes aliments », une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
+   <li>Une valeur fausse sur l'emballage ? Dans le pavé, le petit crayon corrige les valeurs de l'aliment.</li>
+   <li><b>Repas types</b> : les repas que vous mangez souvent. Touchez-en un pour le noter aujourd'hui ; le crayon le modifie (nom, aliments, quantités) ; « + Nouveau repas type » en crée un. Un repas en cours peut aussi se garder avec « ☆ Garder comme repas type ».</li>
+   <li><b>Dupliquer un repas</b> : choisissez un repas déjà noté ; ses aliments forment un nouveau repas, à ajuster avant de l'enregistrer. Pratique pour des restes.</li>
+   <li><b>Une note</b> (si la case Notes personnelles du profil est cochée) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). <b>Mon poids</b> : au réveil, après avoir dormi normalement, à jeun. <b>Lever</b> et <b>Coucher</b> : si la case Sommeil du profil est cochée.</li>
+   <li><b>Gérer mes aliments</b> (en bas de Noter) : créer un aliment ou une préparation (recette maison), corriger une fiche, compléter un nutriment manquant (« À compléter »), archiver un aliment que vous n'utilisez plus (bouton « Archiver » sur sa fiche ; il reste dans « Archivés »).</li></ul>
+   <h3>Mon suivi</h3><ul style="padding-left:18px">
+   <li><b>Jour</b> : vos repas, notes, pesées, lever et coucher dans l'ordre de l'heure, avec le total. Le crayon corrige, la corbeille supprime. Touchez la date pour ouvrir le calendrier.</li>
+   <li><b>Semaine</b> : les calories de chaque jour et les moyennes ; touchez un jour pour l'ouvrir.</li>
+   <li><b>Poids</b> : la courbe et vos dernières pesées, à corriger ou supprimer.</li></ul>
+   <h3>Les icônes du bas</h3><ul style="padding-left:18px">
+   <li><b>Profil</b> (il s'ouvre tout seul la première fois) : votre nom ou pseudonyme si vous le souhaitez, vos mesures pour calculer un objectif de calories, les nutriments à suivre en plus (3 au plus), le sommeil, les notes personnelles. Tout s'enregistre au fur et à mesure. La langue se choisit en bas du Profil.</li>
    <li><b>Analyse</b> : copiez votre carnet pour l'IA de votre choix, avec votre question. Vos notes personnelles ne sont envoyées que si vous cochez la case.</li>
-   <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li>`,`
-   <li><b>Записать приём пищи</b>: выберите категорию, нажмите на продукт, введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. Затем «Сохранить».</li>
-   <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет калории и нутриенты продукта.</li>
-   <li><b>Типовые приёмы пищи</b>: то, что вы часто едите, сохраняется кнопкой «☆ Сохранить как типовой» и потом добавляется одним нажатием.</li>
-   <li><b>Мои продукты</b>: создать продукт или домашнее блюдо (рецепт), исправить карточку, убрать в архив продукт, который вы больше не покупаете (кнопка «В архив» в его карточке; он остаётся в списке «В архиве»).</li>
-   <li><b>Мои приёмы пищи</b>: итог за день или за неделю. Карандаш открывает запись для исправления. Нажмите на дату, чтобы открыть календарь.</li>
-   <li><b>Повторить записанный приём пищи</b> (в списке категорий при записи): выберите приём пищи другого дня, его продукты добавятся в текущий. Удобно для остатков.</li>
-   <li><b>+ Заметка</b> (при записи или в «Мои приёмы пищи», если в Профиле отмечены личные заметки): несколько слов с датой, без подсчётов («2 часа на велосипеде», «небольшая температура»). Если в Профиле отмечен сон: <b>+ Подъём</b> и <b>+ Отбой</b>.</li>
-   <li><b>Профиль</b>: ваши данные для расчёта нормы калорий, нутриенты для отслеживания (не более 3), сон и вес (сразу после сна, если вы нормально выспались, натощак; для взвешивания в другой день измените дату). Всё сохраняется сразу. Значения нового нутриента вводятся в продуктах: см. Мои продукты › Дополнить. Язык выбирается внизу Профиля.</li>
+   <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li>
+   <li><b>Autres applis</b> : nos autres applications sur le Play Store. <b>Café</b> : pour nous soutenir, bientôt.</li></ul>
+   <p style="margin-bottom:0">Nous sommes à votre écoute${nom?', '+nom:''}. Si vous avez des questions ou des idées : <a href="mailto:contact.eboops@gmail.com">contact.eboops@gmail.com</a></p>`,`
+   <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить.</p>
+   <h3>Записать</h3><ul style="padding-left:18px">
+   <li><b>Мой приём пищи</b>: нажмите «Мои продукты», категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
+   <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет значения продукта.</li>
+   <li><b>Типовые приёмы пищи</b>: то, что вы часто едите. Нажмите на типовой, чтобы записать его на сегодня; карандаш изменяет его (название, продукты, количество); «+ Новый типовой» создаёт новый. Текущий приём пищи тоже можно сохранить кнопкой «☆ Сохранить как типовой».</li>
+   <li><b>Дублировать приём пищи</b>: выберите уже записанный приём пищи; его продукты составят новый, который можно изменить перед сохранением. Удобно для остатков.</li>
+   <li><b>Заметка</b> (если в Профиле отмечены личные заметки): несколько слов с датой, без подсчётов («2 часа на велосипеде», «небольшая температура»). <b>Мой вес</b>: сразу после сна, если вы нормально выспались, натощак. <b>Подъём</b> и <b>Отбой</b>: если в Профиле отмечен сон.</li>
+   <li><b>Управление продуктами</b> (внизу экрана «Записать»): создать продукт или домашнее блюдо (рецепт), исправить карточку, дополнить недостающий нутриент («Дополнить»), убрать в архив продукт, который вы больше не покупаете (кнопка «В архив» в его карточке; он остаётся в списке «В архиве»).</li></ul>
+   <h3>Мой дневник</h3><ul style="padding-left:18px">
+   <li><b>День</b>: приёмы пищи, заметки, взвешивания, подъём и отбой по времени, с итогом. Карандаш исправляет, корзина удаляет. Нажмите на дату, чтобы открыть календарь.</li>
+   <li><b>Неделя</b>: калории по дням и средние значения; нажмите на день, чтобы открыть его.</li>
+   <li><b>Вес</b>: график и последние взвешивания, их можно исправить или удалить.</li></ul>
+   <h3>Значки внизу</h3><ul style="padding-left:18px">
+   <li><b>Профиль</b> (при первом запуске открывается сам): ваше имя или псевдоним, если хотите, ваши данные для расчёта нормы калорий, нутриенты для отслеживания (не более 3), сон, личные заметки. Всё сохраняется сразу. Язык выбирается внизу Профиля.</li>
    <li><b>Анализ</b>: скопируйте дневник для любого ИИ вместе со своим вопросом. Личные заметки отправляются, только если вы отметите это.</li>
-   <li><b>Резервная копия</b>: регулярно сохраняйте файл. Данные остаются на этом устройстве, никуда не отправляются.</li>`)}</ul></div>`;
+   <li><b>Резервная копия</b>: регулярно сохраняйте файл. Данные остаются на этом устройстве, никуда не отправляются.</li>
+   <li><b>Другие</b>: наши другие приложения в Play Store. <b>Кофе</b>: поддержать нас, скоро.</li></ul>
+   <p style="margin-bottom:0">${nom?nom+', мы':'Мы'} всегда рады вас выслушать. Вопросы или идеи: <a href="mailto:contact.eboops@gmail.com">contact.eboops@gmail.com</a></p>`)}</div>`;
   bind();
 }
 
@@ -1186,9 +1352,10 @@ function aide(){
 function render(){
   TODAY=todayIso();
   if(applyCalc())save();
-  ({home,noter,aliments,fiche:openFiche,repas,types,analyse,sauvegarde,profil,aide}[view]||home)();
+  ({home,menu,noter,aliments,fiche:openFiche,repas,types,typeEdit,analyse,sauvegarde,profil,aide,applis,cafe}[view]||home)();
 }
 render();
+if(FRESH)go('profil');
 })();
 </script>
 </body>
