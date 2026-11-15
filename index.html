@@ -142,6 +142,23 @@ h1,h2,h3,.btn,.round,.hello .title,.dock button,.alertline{font-family:var(--fd)
 .seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:10px}
 .seg.three{grid-template-columns:1fr 1fr 1fr}
 .help h3{font-size:1rem;margin:14px 0 4px;color:var(--accent)}
+/* onglet À propos, sur le modèle de la page À propos de RAZ 5.3 : titre et version centrés, deux lignes à icône, Nous contacter en bas */
+.about{flex:1;display:flex;flex-direction:column;padding:0 4px 18px}
+.home .top{background:transparent}
+.about .ttl{text-align:center;margin:14px 0 30px}
+.about .ttl h2{font-family:var(--fd);font-weight:400;font-size:1.8rem;margin:0}
+.about .ttl p{margin:4px 0 0;color:var(--muted)}
+.about .arow{display:flex;align-items:center;gap:18px;padding:8px 0}
+.about .arow svg{width:56px;height:56px;flex:none}
+.about .arow b{display:block;font-weight:500;font-size:1.08rem}
+.about .arow small{color:var(--muted);font-size:.9rem}
+.about .arow.off{opacity:.55}
+.about .grow{flex:1;min-height:28px}
+.about h3{font-family:var(--f);font-weight:500;font-size:1.08rem;margin:0 0 4px}
+.about .ctxt{color:var(--muted);margin:0}
+.contact{display:flex;align-items:center;justify-content:flex-end;gap:14px;margin-top:10px;padding:4px 0;text-decoration:none;color:var(--accent);font-weight:600}
+.contact span{word-break:break-all}
+.contact svg{width:40px;height:40px;flex:none}
 .help li{margin-bottom:6px}
 .seg button{border:0;background:var(--surface);color:var(--muted);padding:9px;font-weight:700}
 .seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
@@ -559,7 +576,7 @@ function home(){
   $('#bRepas').onclick=()=>{viewDate=todayIso();mode='jour';go('repas')};
   const bp=$('#bProf');if(bp)bp.onclick=()=>go('profil');
   const bw=$('#bW');if(bw)bw.onclick=()=>addWeight(home);
-  app.querySelectorAll('.dock [data-v]').forEach(b=>b.onclick=()=>go(b.dataset.v));
+  app.querySelectorAll('.dock [data-v]').forEach(b=>b.onclick=()=>{if(b.dataset.v==='aide')helpTab='aide';go(b.dataset.v)});
 }
 
 /* ================= NOTER UN REPAS ================= */
@@ -1321,12 +1338,15 @@ function cafe(){
 
 /* ================= AIDE ================= */
 const VERSION='2026-11-15';   /* date de la version : à changer à chaque mise en ligne (idée 50) */
+let helpTab='aide';   /* onglet de la page Aide : 'aide' ou 'apropos' ; l'icône du bas rouvre toujours sur Aide */
 function aide(){
   app.className='';
   const vd=new Date(VERSION+'T12:00').toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'});
   const nom=esc((S.profile.nom||'').trim());
+  /* ligne de contact (A2, modèle RAZ 5.3) : hibou ardoise commun à toutes les applis (Identite_eBoops\Logo\eboops_logo.svg), à droite de l'adresse ; toute la ligne ouvre le courriel */
+  const CONTACT=`<a class="contact" href="mailto:contact.eboops@gmail.com?subject=NutriNote"><span>contact.eboops@gmail.com</span><svg viewBox="0 0 100 100" aria-hidden="true"><path fill="#6B4F3A" d="M22,93 C35,90.6 55,92.4 82,91.2 Q84,91.4 82,92.4 C56,94.2 36,93.6 22,96.6 Q20.5,94.8 22,93 Z"/><path d="M74,92 C78,90.6 81.5,88.5 84,85.5" fill="none" stroke="#6B4F3A" stroke-width="1.6" stroke-linecap="round"/><path fill="#7C9A6E" d="M84,85.5 C83.5,80.5 87.5,78 92,78 C91.3,82.8 88.5,86.2 84,85.5 Z"/><path fill="#93B083" d="M79.5,90 C82,89.2 84.5,89.7 86,91.3 C83.5,92.4 81.2,91.8 79.5,90 Z"/><path fill="#4A6283" d="M50,12 C41,12 35,13 31,15 C28,12 23,9 18,8 C19,13 20,19 22,24 C19,29 18,34 18,40 C18,46 20,51 23,55 C18,61 16,68 16,74 C16,85 31,91 50,91 C69,91 84,85 84,74 C84,68 82,61 77,55 C80,51 82,46 82,40 C82,34 81,29 78,24 C80,19 81,13 82,8 C77,9 72,12 69,15 C65,13 59,12 50,12 Z"/><path fill="#34486A" d="M23,55 C18,61 16,68 16,74 C16,82 22,87 30,89 C24,81 22,71 25,62 C26,59 27,57 29,56 Z M77,55 C82,61 84,68 84,74 C84,82 78,87 70,89 C76,81 78,71 75,62 C74,59 73,57 71,56 Z"/><path fill="#8CA3C0" d="M34,71 a16,15.5 0 1,0 32,0 a16,15.5 0 1,0 -32,0 Z"/><path fill="#34486A" d="M24,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M52,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z"/><path fill="#FBF7EE" d="M27.5,38 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 Z M55.5,38 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 Z"/><path fill="#1B2430" d="M32.5,39 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z M58.5,39 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z"/><path fill="#FFFFFF" d="M37.2,37.4 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0 Z M63.2,37.4 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0 Z"/><path fill="#D4A24C" d="M46,45 L54,45 L50,53 Z M38.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M42.2,92.4 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M45.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M49.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M53.2,92.4 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M56.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/></svg></a>`;
   /* aide réécrite au lot 2 (étape 5) : l'ordre suit l'appli, Noter pour créer, Mon suivi pour relire et corriger */
-  app.innerHTML=top(T('Aide','Помощь'))+`<p class="muted" style="margin:0 4px 8px">${T('Version du '+vd,'Версия от '+vd)}</p><div class="card help">${T(`
+  const HELP=`<div class="card help">${T(`
    <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger.</p>
    <h3>Noter</h3><ul style="padding-left:18px">
    <li><b>Mon repas</b> : touchez « Mes aliments », une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
@@ -1344,7 +1364,7 @@ function aide(){
    <li><b>Analyse</b> : copiez votre carnet pour l'IA de votre choix, avec votre question. Vos notes personnelles ne sont envoyées que si vous cochez la case.</li>
    <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li>
    <li><b>Autres applis</b> : nos autres applications sur le Play Store. <b>Café</b> : pour nous soutenir, bientôt.</li></ul>
-   <p style="margin-bottom:0">Nous sommes à votre écoute${nom?', '+nom:''}. Si vous avez des questions ou des idées : <a href="mailto:contact.eboops@gmail.com">contact.eboops@gmail.com</a></p>`,`
+   <p style="margin-bottom:0">Une question, une idée ? Écrivez-nous : voir l'onglet <a href="#" data-ht="apropos">À propos</a>.</p>`,`
    <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить.</p>
    <h3>Записать</h3><ul style="padding-left:18px">
    <li><b>Мой приём пищи</b>: нажмите «Мои продукты», категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
@@ -1362,8 +1382,20 @@ function aide(){
    <li><b>Анализ</b>: скопируйте дневник для любого ИИ вместе со своим вопросом. Личные заметки отправляются, только если вы отметите это.</li>
    <li><b>Резервная копия</b>: регулярно сохраняйте файл. Данные остаются на этом устройстве, никуда не отправляются.</li>
    <li><b>Другие</b>: наши другие приложения в Play Store. <b>Кофе</b>: поддержать нас, скоро.</li></ul>
-   <p style="margin-bottom:0">${nom?nom+', мы':'Мы'} всегда рады вас выслушать. Вопросы или идеи: <a href="mailto:contact.eboops@gmail.com">contact.eboops@gmail.com</a></p>`)}</div>`;
+   <p style="margin-bottom:0">Вопрос или идея? Напишите нам: вкладка <a href="#" data-ht="apropos">О приложении</a>.</p>`)}</div>`;
+  /* onglet À propos (15/11/2026) : la page « À propos » de RAZ 5.3 (version, noter l'appli, politique de confidentialité, nous contacter), texte de contact sans le mot de passe */
+  /* refait le 15/11 sur la capture de RAZ 5.3 : sans cadre, sur le fond en dégradé de l'accueil ; icône de l'appli provisoire (feuille), en attendant l'icône définitive */
+  const ABOUT=`<div class="about">
+   <div class="ttl"><h2>NutriNote</h2><p>${T('Version du '+vd,'Версия от '+vd)}</p></div>
+   <div class="arow off"><svg viewBox="0 0 56 56" aria-hidden="true"><rect width="56" height="56" rx="12" fill="var(--accent)"/><path d="M15 41 C15 25 25 15 42 14 C42 31 33 41 17 41 Z" fill="#fff"/><path d="M17 40 C23 32 29 26 36 20" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg><div><b>${T('Notez cette application','Оцените приложение')}</b><small>${T('Après la publication sur le Play Store','После публикации в Play Маркете')}</small></div></div>
+   <div class="arow off"><svg viewBox="0 0 56 56" aria-hidden="true"><path d="M28 4 L48 11 V27 C48 40 39 49 28 53 C17 49 8 40 8 27 V11 Z" fill="#5BC0EB"/><circle cx="26" cy="27" r="9" fill="none" stroke="#fff" stroke-width="5"/><path d="M32.5 33.5 L40 41" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg><div><b>${T('Politique de confidentialité','Политика конфиденциальности')}</b><small>${T('Bientôt','Скоро')}</small></div></div>
+   <div class="grow"></div>
+   <h3>${T('Nous contacter :','Связаться с нами:')}</h3>
+   <p class="ctxt">${T(`Nous sommes à votre écoute${nom?', '+nom:''}. Si vous avez des questions, des remarques ou des suggestions, vous pouvez nous envoyer un email en cliquant sur l'adresse ci-dessous :`,`${nom?nom+', мы':'Мы'} всегда рады вас выслушать. Если у вас есть вопросы, комментарии или предложения, вы можете отправить нам электронное письмо, нажав на адрес ниже:`)}</p>${CONTACT}</div>`;
+  app.className=helpTab==='apropos'?'home':'';
+  app.innerHTML=top(T('Aide','Помощь'))+`<div class="seg"><button data-ht="aide" aria-pressed="${helpTab==='aide'}">${T('Aide','Помощь')}</button><button data-ht="apropos" aria-pressed="${helpTab==='apropos'}">${T('À propos','О приложении')}</button></div>`+(helpTab==='aide'?HELP:ABOUT);
   bind();
+  app.querySelectorAll('[data-ht]').forEach(b=>b.onclick=e=>{e.preventDefault();helpTab=b.dataset.ht;aide();window.scrollTo(0,0)});
 }
 
 /* ================= rendu ================= */
