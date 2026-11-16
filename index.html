@@ -336,7 +336,9 @@ function seed(){return {foods:baseFoods(),meals:[],goals:{kcal:null,prot:null},c
 let S;
 /* premier lancement (aucun carnet enregistré) : le Profil s'ouvre tout seul (lot 2, étape 1) */
 const FRESH=!store.get(KEY);
-try{S=JSON.parse(store.get(KEY))}catch(e){S=null}
+/* lastRaw : le carnet tel que cette fenêtre l'a lu ou écrit la dernière fois (synchronisation des fenêtres, 16/11/2026) */
+let lastRaw=store.get(KEY);
+try{S=JSON.parse(lastRaw)}catch(e){S=null}
 if(!S||!Array.isArray(S.foods))S=seed();
 function migrate(){
   if(!Array.isArray(S.meals))S.meals=[];
@@ -356,7 +358,13 @@ function migrate(){
   S.base=1;delete S.example;
 }
 migrate();
-const save=()=>store.set(KEY,JSON.stringify(S));
+/* une fenêtre n'écrit jamais par-dessus un carnet changé ailleurs depuis sa dernière lecture : elle le relit, et l'action est à refaire */
+function save(){
+  const cur=store.get(KEY);
+  if(cur!==null&&lastRaw!==null&&cur!==lastRaw){syncFromStorage();clearToasts();
+    setTimeout(()=>{clearToasts();ask(T('Action non enregistrée','Действие не сохранено'),T('Le carnet venait d\'être modifié dans une autre fenêtre. Il a été relu : refaites votre dernière action.','Дневник был изменён в другом окне и перечитан. Повторите последнее действие.'),[{label:'OK'}])},0);return false}
+  const raw=JSON.stringify(S);store.set(KEY,raw);lastRaw=raw;return true;
+}
 save();
 const food=id=>S.foods.find(f=>f.id===id);
 const val=l=>{const f=food(l.foodId);return f?{k:f.kcal*l.g/100,p:f.prot*l.g/100}:{k:0,p:0}};
@@ -584,10 +592,28 @@ function home(){
 /* ================= NOTER UN REPAS ================= */
 let draft=null; /* {editId,date,time,items} */
 let pendingDraft=null,noterSel={ctx:'noter',v:'toutes',search:false,q:''};
-function saveDraft(){const d=draft||pendingDraft;if(d&&d.items.length)store.set(KEY+'.draft',JSON.stringify({editId:d.editId,date:d.date,time:d.time,items:d.items}));else store.del(KEY+'.draft')}
-function clearDraft(){pendingDraft=null;store.del(KEY+'.draft')}
-(function loadDraft(){let d=null;try{d=JSON.parse(store.get(KEY+'.draft'))}catch(e){}
-  if(d&&Array.isArray(d.items)){d.items=d.items.filter(l=>food(l.foodId));if(d.editId&&!S.meals.some(m=>m.id===d.editId))d.editId=null;if(d.items.length)pendingDraft=d}})();
+let lastDraftRaw=store.get(KEY+'.draft');
+function saveDraft(){const d=draft||pendingDraft;if(d&&d.items.length){const r=JSON.stringify({editId:d.editId,date:d.date,time:d.time,items:d.items});store.set(KEY+'.draft',r);lastDraftRaw=r}else{store.del(KEY+'.draft');lastDraftRaw=null}}
+function clearDraft(){pendingDraft=null;store.del(KEY+'.draft');lastDraftRaw=null}
+function readDraft(raw){let d=null;try{d=JSON.parse(raw)}catch(e){}
+  if(d&&Array.isArray(d.items)){d.items=d.items.filter(l=>food(l.foodId));if(d.editId&&!S.meals.some(m=>m.id===d.editId))d.editId=null;if(d.items.length)return d}return null}
+pendingDraft=readDraft(lastDraftRaw);
+/* synchronisation des fenêtres (16/11/2026) : chaque fenêtre ou onglet garde le carnet et le repas en cours en mémoire.
+   Dès qu'une autre fenêtre les change, celle-ci les relit : elle ne peut ni ressortir un repas déjà enregistré, ni écraser le carnet.
+   Si elle était sur Mon repas, elle le quitte : le repas a été enregistré, abandonné ou modifié ailleurs. */
+function syncFromStorage(){
+  let changed=false,kicked=false;
+  const raw=store.get(KEY);
+  if(raw!==null&&raw!==lastRaw){let n=null;try{n=JSON.parse(raw)}catch(e){}
+    if(n&&Array.isArray(n.foods)){S=n;migrate();changed=true}lastRaw=raw}
+  const dr=store.get(KEY+'.draft');
+  if(dr!==lastDraftRaw){lastDraftRaw=dr;if(draft){draft=null;kicked=true}pendingDraft=readDraft(dr);changed=true}
+  if(!changed)return;
+  document.querySelectorAll('.sheet-bg').forEach(e=>e.remove());
+  if(kicked){back=['home'];view='home';history.replaceState({v:'home'},'');render();window.scrollTo(0,0);
+    toast(T('Ce repas a été enregistré, abandonné ou modifié dans une autre fenêtre.','Этот приём пищи сохранён, отменён или изменён в другом окне.'))}
+  else render();
+}
 /* after : ce qu'on fait une fois l'écran Mon repas ouvert (ajouter les aliments d'un repas type ou d'un repas dupliqué) */
 /* 16/11 : « Reprendre ce repas » rouvre le repas en cours TEL QUEL ; les aliments d'un repas type (after) ne s'ajoutent qu'à un repas neuf.
    Avant, ils s'ajoutaient aussi au repas repris, et les quantités d'un même aliment s'additionnaient (doublement constaté par le responsable). */
@@ -647,9 +673,9 @@ function fillNoterList(){
     const row=(k,l,n,fx)=>`<div class="row one nav${fx?' fx':''}" data-nv="${esc(k)}"><div class="main"><span class="name">${esc(l)}</span></div><span class="kc">${n} ›</span></div>`;
     let h='';
     /* 16/11 (responsable) : Repas types à la racine de Mon repas (ses aliments s'ajoutent au repas en cours) ; Préparations descend dans Mes aliments */
-    /* 16/11 : « Repas déjà notés » (ex-« Dupliquer un repas » du menu Noter) : les aliments d'un repas noté s'ajoutent au repas en cours, comme un repas type ; le repas noté n'est pas touché */
+    /* 16/11 : « Utiliser un repas précédent » (ex-« Dupliquer un repas » du menu Noter) : les aliments d'un repas noté s'ajoutent au repas en cours, comme un repas type ; le repas noté n'est pas touché */
     const past=S.meals.filter(m=>m.id!==draft.editId);
-    if(v==='root'){if(S.models.length)h+=row('types',T('Repas types','Типовые приёмы пищи'),S.models.length,1);if(past.length)h+=`<div class="row one nav fx" id="nPast"><div class="main"><span class="name">${T('Repas déjà notés','Прежние приёмы пищи')}</span></div><span class="kc">›</span></div>`;h+=row('cats',T('Mes aliments','Мои продукты'),act.length,1)}
+    if(v==='root'){if(S.models.length)h+=row('types',T('Repas types','Типовые приёмы пищи'),S.models.length,1);if(past.length)h+=`<div class="row one nav fx" id="nPast"><div class="main"><span class="name">${T('Utiliser un repas précédent','Использовать прежний приём пищи')}</span></div><span class="kc">›</span></div>`;h+=row('cats',T('Mes aliments','Мои продукты'),act.length,1)}
     else{h+=row('toutes',T('Tous','Все'),act.length,1);
       const np=act.filter(f=>f.recette).length;if(np)h+=row('preps',PREPS,np,1);
       S.cats.forEach(c=>{if(norm(c)===norm(PREPS))return;const n=act.filter(f=>catOf(f)===c).length;if(n)h+=row('c:'+c,c,n)});
@@ -657,7 +683,7 @@ function fillNoterList(){
     h+=`<div class="row add" data-new="">${T('+ Nouvel aliment','+ Новый продукт')}</div>`;
     el.innerHTML=h;
     el.querySelectorAll('[data-nv]').forEach(r=>r.onclick=()=>{noterSel.v=r.dataset.nv;noter()});
-    const np=$('#nPast');if(np)np.onclick=()=>mealPicker({exclude:draft.editId,title:T('Repas déjà notés','Прежние приёмы пищи'),hint:T('Touchez un repas : ses aliments s\'ajoutent au repas en cours. Le repas choisi ne change pas.','Нажмите на приём пищи: его продукты добавятся к текущему. Выбранный приём пищи не изменится.'),
+    const np=$('#nPast');if(np)np.onclick=()=>mealPicker({exclude:draft.editId,title:T('Utiliser un repas précédent','Использовать прежний приём пищи'),hint:T('Touchez un repas : ses aliments s\'ajoutent au repas en cours. Le repas choisi ne change pas.','Нажмите на приём пищи: его продукты добавятся к текущему. Выбранный приём пищи не изменится.'),
       onPick:m=>{m.items.filter(l=>food(l.foodId)).forEach(l=>addToDraft(l.foodId,l.g));draft.flash='*';drawBasket();toast(T('Aliments du repas de '+fmtT(m.time)+' du '+longDate(m.date).toLowerCase()+' ajoutés.','Добавлены продукты: '+fmtT(m.time)+', '+dayMonth(m.date)+'.'))}});
     el.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>go('fiche',{editFood:null,returnTo:'noter',presetCat:null,prefill:null}));
     return;
@@ -683,7 +709,7 @@ function drawBasket(){
     const data={date:d.date||todayIso(),time:d.time||'',items:d.items.map(l=>({foodId:l.foodId,g:l.g}))};
     const old=d.editId&&S.meals.find(m=>m.id===d.editId);
     if(old){Object.assign(old,data);delete old.type}else S.meals.push({id:uid(),...data});
-    save();viewDate=data.date;mode='jour';draft=null;clearDraft();
+    if(!save())return;viewDate=data.date;mode='jour';draft=null;clearDraft();
     back=['home'];view='repas';history.replaceState({v:'repas'},'');render();window.scrollTo(0,0);
     toast(old?T('Repas modifié.','Изменено.'):T('Repas enregistré.','Сохранено.'));
   };
@@ -871,8 +897,8 @@ function ingredientPicker(selfId,onAdd,title,okLabel){
   draw();
 }
 /* noms réservés par l'appli (idée 51) : refusés pour une catégorie, dans les deux langues */
-const RESERVED=['Toutes','Tous','Tous mes aliments','Mes aliments','Mon repas','Repas types','Reprendre un repas noté','Dupliquer un repas','Repas déjà notés','Préparations','Sans catégorie','À compléter','Archivés',
-  'Все','Все мои продукты','Мои продукты','Мой приём пищи','Типовые приёмы пищи','Дублировать приём пищи','Прежние приёмы пищи','Домашние блюда','Без категории','Дополнить','В архиве'].map(norm);
+const RESERVED=['Toutes','Tous','Tous mes aliments','Mes aliments','Mon repas','Repas types','Reprendre un repas noté','Dupliquer un repas','Utiliser un repas précédent','Préparations','Sans catégorie','À compléter','Archivés',
+  'Все','Все мои продукты','Мои продукты','Мой приём пищи','Типовые приёмы пищи','Дублировать приём пищи','Использовать прежний приём пищи','Домашние блюда','Без категории','Дополнить','В архиве'].map(norm);
 const reserved=v=>RESERVED.includes(norm(String(v).trim()));
 const RES_MSG=()=>T('Ce nom est réservé par l\'application. Choisissez-en un autre.','Это название занято приложением. Выберите другое.');
 /* catégories : choisir (toucher = choisir) ; le crayon du haut passe en mode édition */
@@ -1346,7 +1372,7 @@ function aide(){
   const HELP=`<div class="card help">${T(`
    <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger.</p>
    <h3>Noter</h3><ul style="padding-left:18px">
-   <li><b>Mon repas</b> : touchez « Mes aliments » (vos préparations y sont en tête), une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. « Repas types » ajoute d'un coup les aliments d'un repas habituel, « Repas déjà notés » ceux d'un repas d'un autre jour (vous mangez la même chose qu'il y a trois jours) : à compléter ensuite. Le repas type ou le repas choisi ne change pas. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
+   <li><b>Mon repas</b> : touchez « Mes aliments » (vos préparations y sont en tête), une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. « Repas types » ajoute d'un coup les aliments d'un repas habituel, « Utiliser un repas précédent » ceux d'un repas d'un autre jour (vous mangez la même chose qu'il y a trois jours) : à compléter ensuite. Le repas type ou le repas choisi ne change pas. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
    <li>Une valeur fausse sur l'emballage ? Dans le pavé, le petit crayon corrige les valeurs de l'aliment.</li>
    <li><b>Repas types</b> : les repas que vous mangez souvent, qui servent de base. Composez-le une fois dans Mon repas, puis « ☆ Garder comme repas type ». Ensuite, Mon repas › Repas types ajoute ses aliments au repas, que vous complétez : le repas type, lui, ne change pas.</li>
    <li><b>Une note</b> (si la case Notes personnelles du profil est cochée) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). <b>Mon poids</b> : au réveil, après avoir dormi normalement, à jeun. <b>Lever</b> et <b>Coucher</b> : si la case Sommeil du profil est cochée.</li>
@@ -1363,7 +1389,7 @@ function aide(){
    <p style="margin-bottom:0">Une question, une idée ? Écrivez-nous : voir l'onglet <a href="#" data-ht="apropos">À propos</a>.</p>`,`
    <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить.</p>
    <h3>Записать</h3><ul style="padding-left:18px">
-   <li><b>Мой приём пищи</b>: нажмите «Мои продукты» (домашние блюда там в начале списка), категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. «Типовые приёмы пищи» сразу добавляют продукты привычного меню, «Прежние приёмы пищи» — продукты приёма пищи другого дня (вы едите то же, что три дня назад); потом их можно дополнить. Типовое меню или выбранный приём пищи не изменятся. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
+   <li><b>Мой приём пищи</b>: нажмите «Мои продукты» (домашние блюда там в начале списка), категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. «Типовые приёмы пищи» сразу добавляют продукты привычного меню, «Использовать прежний приём пищи» — продукты приёма пищи другого дня (вы едите то же, что три дня назад); потом их можно дополнить. Типовое меню или выбранный приём пищи не изменятся. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
    <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет значения продукта.</li>
    <li><b>Типовые приёмы пищи</b>: то, что вы часто едите, — основа для записи. Составьте приём пищи один раз в «Мой приём пищи», затем «☆ Сохранить как типовое меню». Потом «Мой приём пищи» › «Типовые приёмы пищи» добавляет его продукты к приёму пищи, который вы дополняете; само типовое меню не меняется.</li>
    <li><b>Заметка</b> (если в Профиле отмечены личные заметки): несколько слов с датой, без подсчётов («2 часа на велосипеде», «небольшая температура»). <b>Мой вес</b>: сразу после сна, если вы нормально выспались, натощак. <b>Подъём</b> и <b>Отбой</b>: если в Профиле отмечен сон.</li>
@@ -1400,6 +1426,13 @@ function render(){
   ({home,menu,noter,aliments,fiche:openFiche,repas,typeEdit,analyse,sauvegarde,profil,aide,applis,cafe}[view]||home)();
 }
 render();
+addEventListener('storage',e=>{if(e.key===null||e.key===KEY||e.key===KEY+'.draft')syncFromStorage()});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncFromStorage()});
+addEventListener('pageshow',e=>{if(e.persisted)syncFromStorage()});
+addEventListener('focus',()=>syncFromStorage());
+/* au moindre toucher, avant que l'action parte : une fenêtre restée en arrière se met à jour d'abord */
+document.addEventListener('pointerdown',()=>syncFromStorage(),true);
+document.addEventListener('keydown',()=>syncFromStorage(),true);
 if(FRESH)go('profil');
 })();
 </script>
