@@ -633,12 +633,12 @@ function noter(){
   $('#dTime').onchange=e=>{d.time=e.target.value;saveDraft()};
   fillNoterList();drawBasket();
   wirePick($('#upper'),noterSel,()=>noter(),fillNoterList,v=>$('#basket').classList.toggle('mini',v));
-  const up=$('#nUp');if(up)up.onclick=()=>{noterSel.v=noterSel.v==='preps'||noterSel.v==='cats'?'root':'cats';noter()};
+  const up=$('#nUp');if(up)up.onclick=()=>{noterSel.v=noterSel.v==='types'||noterSel.v==='cats'?'root':'cats';noter()};
 }
-/* Mon repas : on descend Préparations ou Mes aliments › une catégorie › un aliment ; la loupe cherche partout */
+/* Mon repas : Repas types › un repas type (ajouté au repas en cours), ou Mes aliments › Préparations ou une catégorie › un aliment ; la loupe cherche partout */
 function noterBar(){
   if(noterSel.search)return pickBar(noterSel);
-  const v=noterSel.v,lbl=v==='root'?T('Choisissez vos aliments','Выберите продукты'):v==='cats'?T('Mes aliments','Мои продукты'):v==='preps'?PREPS:v==='toutes'?T('Tous mes aliments','Все мои продукты'):v.slice(2);
+  const v=noterSel.v,lbl=v==='root'?T('Choisissez vos aliments','Выберите продукты'):v==='cats'?T('Mes aliments','Мои продукты'):v==='types'?T('Repas types','Типовые приёмы пищи'):v==='preps'?PREPS:v==='toutes'?T('Tous mes aliments','Все мои продукты'):v.slice(2);
   return `<div class="pickbar">${v==='root'?`<div class="pathlbl">${lbl}</div>`:`<button class="pathbtn" id="nUp"><b>‹</b> ${esc(lbl)}</button>`}<button class="loupe" id="loupe" aria-pressed="false" aria-label="${T('Rechercher','Поиск')}">${ic.search}</button></div>`;
 }
 function fillNoterList(){
@@ -647,8 +647,10 @@ function fillNoterList(){
   if(!noterSel.search&&(v==='root'||v==='cats')){
     const row=(k,l,n,fx)=>`<div class="row one nav${fx?' fx':''}" data-nv="${esc(k)}"><div class="main"><span class="name">${esc(l)}</span></div><span class="kc">${n} ›</span></div>`;
     let h='';
-    if(v==='root'){const np=act.filter(f=>f.recette).length;if(np)h+=row('preps',PREPS,np,1);h+=row('cats',T('Mes aliments','Мои продукты'),act.length,1)}
+    /* 16/11 (responsable) : Repas types à la racine de Mon repas (ses aliments s'ajoutent au repas en cours) ; Préparations descend dans Mes aliments */
+    if(v==='root'){if(S.models.length)h+=row('types',T('Repas types','Типовые приёмы пищи'),S.models.length,1);h+=row('cats',T('Mes aliments','Мои продукты'),act.length,1)}
     else{h+=row('toutes',T('Tous','Все'),act.length,1);
+      const np=act.filter(f=>f.recette).length;if(np)h+=row('preps',PREPS,np,1);
       S.cats.forEach(c=>{if(norm(c)===norm(PREPS))return;const n=act.filter(f=>catOf(f)===c).length;if(n)h+=row('c:'+c,c,n)});
       const nc=act.filter(f=>catOf(f)===NOCAT).length;if(nc)h+=row('c:'+NOCAT,NOCAT,nc,1)}
     h+=`<div class="row add" data-new="">${T('+ Nouvel aliment','+ Новый продукт')}</div>`;
@@ -1349,7 +1351,7 @@ function aide(){
   const HELP=`<div class="card help">${T(`
    <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger.</p>
    <h3>Noter</h3><ul style="padding-left:18px">
-   <li><b>Mon repas</b> : touchez « Mes aliments », une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
+   <li><b>Mon repas</b> : touchez « Mes aliments » (vos préparations y sont en tête), une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. « Repas types » ajoute d'un coup les aliments d'un repas habituel, à compléter ensuite. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
    <li>Une valeur fausse sur l'emballage ? Dans le pavé, le petit crayon corrige les valeurs de l'aliment.</li>
    <li><b>Repas types</b> : les repas que vous mangez souvent. Touchez-en un pour le noter aujourd'hui ; le crayon le modifie (nom, aliments, quantités) ; « + Nouveau repas type » en crée un. Un repas en cours peut aussi se garder avec « ☆ Garder comme repas type ».</li>
    <li><b>Dupliquer un repas</b> : choisissez un repas déjà noté ; ses aliments forment un nouveau repas, à ajuster avant de l'enregistrer. Pratique pour des restes.</li>
@@ -1367,7 +1369,7 @@ function aide(){
    <p style="margin-bottom:0">Une question, une idée ? Écrivez-nous : voir l'onglet <a href="#" data-ht="apropos">À propos</a>.</p>`,`
    <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить.</p>
    <h3>Записать</h3><ul style="padding-left:18px">
-   <li><b>Мой приём пищи</b>: нажмите «Мои продукты», категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
+   <li><b>Мой приём пищи</b>: нажмите «Мои продукты» (домашние блюда там в начале списка), категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. «Типовые приёмы пищи» сразу добавляют продукты привычного меню, которое потом можно дополнить. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
    <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет значения продукта.</li>
    <li><b>Типовые приёмы пищи</b>: то, что вы часто едите. Нажмите на типовое меню, чтобы записать его на сегодня; карандаш изменяет его (название, продукты, количество); «+ Новое типовое меню» создаёт новое. Текущий приём пищи тоже можно сохранить кнопкой «☆ Сохранить как типовое меню».</li>
    <li><b>Дублировать приём пищи</b>: выберите уже записанный приём пищи; его продукты составят новый, который можно изменить перед сохранением. Удобно для остатков.</li>
