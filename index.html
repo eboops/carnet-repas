@@ -495,6 +495,8 @@ function selectorOptions(ctx){
   const o=[['toutes',cnt(T('Toutes','Все'),active.length)]];
   const preps=active.filter(f=>f.recette).length;
   if(ctx!=='ingr'&&preps)o.push(['preps',cnt(PREPS,preps)]);
+  /* 16/11 : les repas types se gèrent ici, comme les préparations (modifier, supprimer, créer) ; on s'en sert dans Mon repas */
+  if(ctx==='aliments')o.push(['types',cnt(T('Repas types','Типовые приёмы пищи'),S.models.length)]);
   S.cats.forEach(c=>{if(norm(c)===norm(PREPS))return;const n=active.filter(f=>catOf(f)===c).length;if(n)o.push(['c:'+c,cnt(c,n)])});
   const nc=active.filter(f=>catOf(f)===NOCAT).length;
   if(nc)o.push(['c:'+NOCAT,cnt(NOCAT,nc)]);
@@ -530,7 +532,7 @@ function renderList(sel,q){
     const groups=[...new Set([...S.cats.filter(c=>norm(c)!==norm(PREPS)),PREPS,NOCAT])].map(c=>[c,r.foods.filter(f=>catOf(f)===c)]).filter(x=>x[1].length);
     h+=groups.map(([c,fs])=>`<div class="row sep">${esc(c)}</div>`+fs.map(f=>foodRow(f,sel.ctx)).join('')).join('');
   }else h+=r.foods.map(f=>foodRow(f,sel.ctx)).join('');
-  if(!r.models.length&&!r.foods.length)h+=`<div class="row muted">${q?T('Rien trouvé pour « '+esc(q)+' ».','Ничего не найдено: «'+esc(q)+'».'):sel.v==='arch'?T('Aucun aliment archivé.','В архиве пусто.'):sel.v==='todo'?T('Tous vos aliments sont complets.','Все продукты заполнены.'):T('Aucun aliment ici pour l\'instant.','Здесь пока нет продуктов.')}</div>`;
+  if(!r.models.length&&!r.foods.length)h+=`<div class="row muted">${q?T('Rien trouvé pour « '+esc(q)+' ».','Ничего не найдено: «'+esc(q)+'».'):sel.v==='arch'?T('Aucun aliment archivé.','В архиве пусто.'):sel.v==='types'?T('Aucun repas type pour l\'instant.','Типовых меню пока нет.'):sel.v==='todo'?T('Tous vos aliments sont complets.','Все продукты заполнены.'):T('Aucun aliment ici pour l\'instant.','Здесь пока нет продуктов.')}</div>`;
   if(sel.ctx!=='ingr'&&sel.v!=='arch'&&sel.v!=='types'&&sel.v!=='todo'){
     const c=r.cat&&r.cat!==NOCAT?r.cat:null;
     h+=`<div class="row add" data-new="${esc(c||'')}">${T('+ Nouvel aliment','+ Новый продукт')}${c?T(' dans « '+esc(c)+' »',' в «'+esc(c)+'»'):q?' «'+esc(q.trim())+'»':''}</div>`;
@@ -587,33 +589,30 @@ function clearDraft(){pendingDraft=null;store.del(KEY+'.draft')}
 (function loadDraft(){let d=null;try{d=JSON.parse(store.get(KEY+'.draft'))}catch(e){}
   if(d&&Array.isArray(d.items)){d.items=d.items.filter(l=>food(l.foodId));if(d.editId&&!S.meals.some(m=>m.id===d.editId))d.editId=null;if(d.items.length)pendingDraft=d}})();
 /* after : ce qu'on fait une fois l'écran Mon repas ouvert (ajouter les aliments d'un repas type ou d'un repas dupliqué) */
+/* 16/11 : « Reprendre ce repas » rouvre le repas en cours TEL QUEL ; les aliments d'un repas type (after) ne s'ajoutent qu'à un repas neuf.
+   Avant, ils s'ajoutaient aussi au repas repris, et les quantités d'un même aliment s'additionnaient (doublement constaté par le responsable). */
 function enterNoter(makeDraft,after){
-  const go2=d=>{draft=d;noterSel={ctx:'noter',v:'root',search:false,q:''};go('noter');if(after){after();drawBasket()}};
+  const go2=(d,withAfter)=>{draft=d;noterSel={ctx:'noter',v:'root',search:false,q:''};go('noter');if(withAfter&&after){after();drawBasket()}};
   if(pendingDraft&&pendingDraft.items.length){const p=pendingDraft,n=p.items.length;
     ask(T('Un repas est en cours','Есть незаконченный приём пищи'),T(`${p.editId?'Modification du repas '+(p.time?'de '+fmtT(p.time):'sans heure'):'Repas'} du ${longDate(p.date).toLowerCase()} · ${n} aliment${n>1?'s':''} · ${nf(sum(p.items).k)} kcal. Voulez-vous le reprendre ?`,
       `${p.editId?'Изменение приёма пищи '+fmtT(p.time):'Приём пищи'}, ${dayMonth(p.date)} · продуктов: ${n} · ${nf(sum(p.items).k)} ккал. Продолжить?`),[
-      {label:T('Reprendre ce repas','Продолжить'),fn:()=>{pendingDraft=null;go2(p)}},
-      {label:T('L\'abandonner','Отказаться'),cls:'warn',fn:()=>{clearDraft();go2(makeDraft())}},
+      {label:T('Reprendre ce repas','Продолжить'),fn:()=>{pendingDraft=null;go2(p,false)}},
+      {label:T('L\'abandonner','Отказаться'),cls:'warn',fn:()=>{clearDraft();go2(makeDraft(),true)}},
       {label:T('Annuler','Отмена'),cls:'ghost'}]);return}
-  go2(makeDraft());
+  go2(makeDraft(),true);
 }
 function startNoter(date){enterNoter(()=>({editId:null,date:date||todayIso(),time:hm(),items:[]}))}
-/* un nouveau repas qui part des aliments d'un repas type ou d'un repas d'un autre jour ; s'il y a un repas en cours repris, ils s'y ajoutent */
-function startWith(items,msg){enterNoter(()=>({editId:null,date:todayIso(),time:hm(),items:[]}),()=>{items.filter(l=>food(l.foodId)).forEach(l=>addToDraft(l.foodId,l.g));draft.flash='*';saveDraft();if(msg)toast(msg)})}
 
 /* ================= NOTER : le menu de tout ce qu'on crée (lot 2, étape 2) ================= */
 function menu(){
   app.className='';
   const p=S.profile,row=(id,label,n,fx)=>`<div class="row${fx?' fx':''}" id="${id}"><div class="main"><span class="name">${label}</span></div><span class="kc">${n!=null?n+' ':''}›</span></div>`;
   app.innerHTML=top(T('Noter','Записать'))+`
-   <div class="list menu">${row('mRepas',T('Mon repas','Мой приём пищи'),null,1)}${row('mTypes',T('Repas types','Типовые приёмы пищи'),S.models.length,1)}${S.meals.length?row('mDup',T('Dupliquer un repas','Дублировать приём пищи'),null,1):''}</div>
+   <div class="list menu">${row('mRepas',T('Mon repas','Мой приём пищи'),null,1)}</div>
    <div class="list menu" style="margin-top:12px">${p.notes?row('mNote',T('Une note','Заметка')):''}${row('mPoids',T('Mon poids','Мой вес'))}${p.sommeil?row('mLever',T('Lever','Подъём'))+row('mCoucher',T('Coucher','Отбой')):''}</div>
    <button class="tmplink" id="mAlim">${T('Gérer mes aliments','Управление продуктами')}</button>`;
   bind();
   $('#mRepas').onclick=()=>startNoter();
-  $('#mTypes').onclick=()=>go('types');
-  const md=$('#mDup');if(md)md.onclick=()=>mealPicker({title:T('Dupliquer un repas','Дублировать приём пищи'),hint:T('Touchez un repas : ses aliments forment un nouveau repas, que vous pourrez ajuster avant de l\'enregistrer.','Нажмите на приём пищи: его продукты составят новый приём пищи, который можно изменить перед сохранением.'),
-    onPick:m=>startWith(m.items,T('Repas de '+fmtT(m.time)+' du '+longDate(m.date).toLowerCase()+' dupliqué.','Продублировано: '+fmtT(m.time)+', '+dayMonth(m.date)+'.'))});
   const ev=(id,k)=>{const b=$(id);if(b)b.onclick=()=>evtSheet(k,todayIso(),hm(),null,null)};
   ev('#mNote','note');ev('#mLever','lever');ev('#mCoucher','coucher');
   $('#mPoids').onclick=()=>addWeight(null);
@@ -648,7 +647,9 @@ function fillNoterList(){
     const row=(k,l,n,fx)=>`<div class="row one nav${fx?' fx':''}" data-nv="${esc(k)}"><div class="main"><span class="name">${esc(l)}</span></div><span class="kc">${n} ›</span></div>`;
     let h='';
     /* 16/11 (responsable) : Repas types à la racine de Mon repas (ses aliments s'ajoutent au repas en cours) ; Préparations descend dans Mes aliments */
-    if(v==='root'){if(S.models.length)h+=row('types',T('Repas types','Типовые приёмы пищи'),S.models.length,1);h+=row('cats',T('Mes aliments','Мои продукты'),act.length,1)}
+    /* 16/11 : « Repas déjà notés » (ex-« Dupliquer un repas » du menu Noter) : les aliments d'un repas noté s'ajoutent au repas en cours, comme un repas type ; le repas noté n'est pas touché */
+    const past=S.meals.filter(m=>m.id!==draft.editId);
+    if(v==='root'){if(S.models.length)h+=row('types',T('Repas types','Типовые приёмы пищи'),S.models.length,1);if(past.length)h+=`<div class="row one nav fx" id="nPast"><div class="main"><span class="name">${T('Repas déjà notés','Прежние приёмы пищи')}</span></div><span class="kc">›</span></div>`;h+=row('cats',T('Mes aliments','Мои продукты'),act.length,1)}
     else{h+=row('toutes',T('Tous','Все'),act.length,1);
       const np=act.filter(f=>f.recette).length;if(np)h+=row('preps',PREPS,np,1);
       S.cats.forEach(c=>{if(norm(c)===norm(PREPS))return;const n=act.filter(f=>catOf(f)===c).length;if(n)h+=row('c:'+c,c,n)});
@@ -656,6 +657,8 @@ function fillNoterList(){
     h+=`<div class="row add" data-new="">${T('+ Nouvel aliment','+ Новый продукт')}</div>`;
     el.innerHTML=h;
     el.querySelectorAll('[data-nv]').forEach(r=>r.onclick=()=>{noterSel.v=r.dataset.nv;noter()});
+    const np=$('#nPast');if(np)np.onclick=()=>mealPicker({exclude:draft.editId,title:T('Repas déjà notés','Прежние приёмы пищи'),hint:T('Touchez un repas : ses aliments s\'ajoutent au repas en cours. Le repas choisi ne change pas.','Нажмите на приём пищи: его продукты добавятся к текущему. Выбранный приём пищи не изменится.'),
+      onPick:m=>{m.items.filter(l=>food(l.foodId)).forEach(l=>addToDraft(l.foodId,l.g));draft.flash='*';drawBasket();toast(T('Aliments du repas de '+fmtT(m.time)+' du '+longDate(m.date).toLowerCase()+' ajoutés.','Добавлены продукты: '+fmtT(m.time)+', '+dayMonth(m.date)+'.'))}});
     el.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>go('fiche',{editFood:null,returnTo:'noter',presetCat:null,prefill:null}));
     return;
   }
@@ -705,10 +708,11 @@ function evtSheet(kind,date,time,after,ex){
 }
 /* dupliquer un repas déjà noté : on navigue de jour en jour, on touche un repas (opts : title, hint, onPick) */
 function mealPicker(opts){
-  const ref=todayIso(),dates=[...new Set(S.meals.map(m=>m.date))].sort();if(!dates.length)return;
+  const pool=S.meals.filter(m=>m.id!==opts.exclude);   /* exclude : le repas en cours de modification ne se reprend pas lui-même */
+  const ref=todayIso(),dates=[...new Set(pool.map(m=>m.date))].sort();if(!dates.length)return;
   let i=dates.filter(x=>x<ref).length-1;if(i<0)i=dates.length-1;
   const bg=overlay('',`<div class="sheet tall" id="mp"></div>`),sh=bg.querySelector('#mp');
-  const draw=()=>{const day=dates[i],ms=S.meals.filter(m=>m.date===day).sort(mealSort);
+  const draw=()=>{const day=dates[i],ms=pool.filter(m=>m.date===day).sort(mealSort);
     sh.innerHTML=`<div class="sheet-h"><h3>${opts.title}</h3><button class="ico" id="mpx" aria-label="${T('Fermer','Закрыть')}">${ic.x}</button></div>
       <div class="daynav" style="margin-top:8px"><button id="mpp" aria-label="${T('Jour précédent','Предыдущий день')}" ${i?'':'disabled'}>‹</button><label class="pickdate">${longDate(day)} ${ic.cal}<input type="date" id="mpd" value="${day}" max="${todayIso()}" aria-label="${T('Choisir une date','Выбрать дату')}"></label><button id="mpn" aria-label="${T('Jour suivant','Следующий день')}" ${i<dates.length-1?'':'disabled'}>›</button></div>
       <p class="muted" style="margin:0">${opts.hint}</p>
@@ -740,7 +744,11 @@ function aliments(){
   $('#newF').onclick=()=>go('fiche',{editFood:null,returnTo:'aliments',presetCat:alimSel.v.startsWith('c:')&&alimSel.v!=='c:'+NOCAT?alimSel.v.slice(2):null,prefill:null});
   const fill=()=>{const el=$('#res');el.innerHTML=renderList(alimSel,alimSel.search?alimSel.q:'');
     el.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>go('fiche',{editFood:b.dataset.f,returnTo:'aliments'}));
-    el.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>go('fiche',{editFood:null,returnTo:'aliments',presetCat:b.dataset.new||null,prefill:alimSel.search?alimSel.q.trim():null}));};
+    el.querySelectorAll('[data-new]').forEach(b=>b.onclick=()=>go('fiche',{editFood:null,returnTo:'aliments',presetCat:b.dataset.new||null,prefill:alimSel.search?alimSel.q.trim():null}));
+    /* repas types : toucher un repas type ouvre sa modification ; « + Nouveau repas type » en crée un */
+    el.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>{tEdit=null;go('typeEdit',{typeId:b.dataset.m})});
+    if(alimSel.v==='types'&&!alimSel.search){el.insertAdjacentHTML('beforeend',`<div class="row add" id="tNew">${T('+ Nouveau repas type','+ Новое типовое меню')}</div><div class="row muted" style="font-size:.85rem">${T('Le plus simple : composez le repas dans Noter › Mon repas, puis « ☆ Garder comme repas type ».','Проще всего: составьте приём пищи в Записать › Мой приём пищи, затем «☆ Сохранить как типовое меню».')}</div>`);
+      $('#tNew').onclick=()=>{tEdit=null;go('typeEdit',{typeId:null})}}};
   if(!selectorOptions('aliments').some(o=>o[0]===alimSel.v))alimSel.v='toutes';
   fill();wirePick(app,alimSel,aliments,fill);
 }
@@ -863,8 +871,8 @@ function ingredientPicker(selfId,onAdd,title,okLabel){
   draw();
 }
 /* noms réservés par l'appli (idée 51) : refusés pour une catégorie, dans les deux langues */
-const RESERVED=['Toutes','Tous','Tous mes aliments','Mes aliments','Mon repas','Repas types','Reprendre un repas noté','Dupliquer un repas','Préparations','Sans catégorie','À compléter','Archivés',
-  'Все','Все мои продукты','Мои продукты','Мой приём пищи','Типовые приёмы пищи','Дублировать приём пищи','Домашние блюда','Без категории','Дополнить','В архиве'].map(norm);
+const RESERVED=['Toutes','Tous','Tous mes aliments','Mes aliments','Mon repas','Repas types','Reprendre un repas noté','Dupliquer un repas','Repas déjà notés','Préparations','Sans catégorie','À compléter','Archivés',
+  'Все','Все мои продукты','Мои продукты','Мой приём пищи','Типовые приёмы пищи','Дублировать приём пищи','Прежние приёмы пищи','Домашние блюда','Без категории','Дополнить','В архиве'].map(norm);
 const reserved=v=>RESERVED.includes(norm(String(v).trim()));
 const RES_MSG=()=>T('Ce nom est réservé par l\'application. Choisissez-en un autre.','Это название занято приложением. Выберите другое.');
 /* catégories : choisir (toucher = choisir) ; le crayon du haut passe en mode édition */
@@ -1005,19 +1013,6 @@ function weekBody(){
   app.querySelectorAll('[data-day]').forEach(c=>c.onclick=()=>{viewDate=c.dataset.day;mode='jour';repas()});
 }
 /* repas types */
-/* repas types (lot 2, étape 4) : toucher la ligne = noter ce repas aujourd'hui ; crayon = modifier sur place */
-function types(){
-  app.className='';
-  const ms=[...S.models].sort(byName);
-  app.innerHTML=top(T('Repas types','Типовые приёмы пищи'))+`
-   <p class="muted">${T('Touchez un repas type pour le noter aujourd\'hui (vous pourrez encore le changer avant d\'enregistrer). Le crayon le modifie. Vous pouvez aussi garder un repas en cours comme repas type (« ☆ Garder comme repas type »). Un repas type ne compte pas dans vos repas.','Нажмите на типовое меню, чтобы записать его на сегодня (до сохранения его можно изменить). Карандаш — изменить типовое меню. Текущий приём пищи тоже можно сохранить как типовое меню («☆ Сохранить как типовое меню»). Типовое меню не считается в ваших записях.')}</p>
-   <div class="list">${ms.length?ms.map(m=>`<div class="row"><div class="main" data-t="${m.id}" style="cursor:pointer"><div class="name">${esc(m.nom)}</div><div class="vals">${[T(m.items.length+' aliment'+(m.items.length>1?'s':''),'продуктов: '+m.items.length),nf(sum(m.items).k)+' '+KCAL,...TR().map(k=>sumTxt(m.items,k))].join(' · ')}</div></div><button class="ico" data-te="${m.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button></div>`).join(''):'<div class="row muted">'+T('Aucun repas type pour l\'instant.','Типовых меню пока нет.')+'</div>'}</div>
-   <button class="btn ghost wide" id="tNew" style="margin-top:12px">${T('+ Nouveau repas type','+ Новое типовое меню')}</button>`;
-  bind();
-  app.querySelectorAll('[data-t]').forEach(r=>r.onclick=()=>{const m=S.models.find(x=>x.id===r.dataset.t);startWith(m.items,T('« '+m.nom+' » ajouté.','«'+m.nom+'» добавлен.'))});
-  app.querySelectorAll('[data-te]').forEach(b=>b.onclick=()=>{tEdit=null;go('typeEdit',{typeId:b.dataset.te})});
-  $('#tNew').onclick=()=>{tEdit=null;go('typeEdit',{typeId:null})};
-}
 /* modification d'un repas type : on travaille sur une copie ; rien n'est enregistré avant « Enregistrer » */
 let tEdit=null;
 function typeEdit(){
@@ -1351,12 +1346,11 @@ function aide(){
   const HELP=`<div class="card help">${T(`
    <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger.</p>
    <h3>Noter</h3><ul style="padding-left:18px">
-   <li><b>Mon repas</b> : touchez « Mes aliments » (vos préparations y sont en tête), une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. « Repas types » ajoute d'un coup les aliments d'un repas habituel, à compléter ensuite. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
+   <li><b>Mon repas</b> : touchez « Mes aliments » (vos préparations y sont en tête), une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. « Repas types » ajoute d'un coup les aliments d'un repas habituel, « Repas déjà notés » ceux d'un repas d'un autre jour (vous mangez la même chose qu'il y a trois jours) : à compléter ensuite. Le repas type ou le repas choisi ne change pas. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
    <li>Une valeur fausse sur l'emballage ? Dans le pavé, le petit crayon corrige les valeurs de l'aliment.</li>
-   <li><b>Repas types</b> : les repas que vous mangez souvent. Touchez-en un pour le noter aujourd'hui ; le crayon le modifie (nom, aliments, quantités) ; « + Nouveau repas type » en crée un. Un repas en cours peut aussi se garder avec « ☆ Garder comme repas type ».</li>
-   <li><b>Dupliquer un repas</b> : choisissez un repas déjà noté ; ses aliments forment un nouveau repas, à ajuster avant de l'enregistrer. Pratique pour des restes.</li>
+   <li><b>Repas types</b> : les repas que vous mangez souvent, qui servent de base. Composez-le une fois dans Mon repas, puis « ☆ Garder comme repas type ». Ensuite, Mon repas › Repas types ajoute ses aliments au repas, que vous complétez : le repas type, lui, ne change pas.</li>
    <li><b>Une note</b> (si la case Notes personnelles du profil est cochée) : quelques mots datés, hors calcul (« 2 h de vélo », « un peu de fièvre »). <b>Mon poids</b> : au réveil, après avoir dormi normalement, à jeun. <b>Lever</b> et <b>Coucher</b> : si la case Sommeil du profil est cochée.</li>
-   <li><b>Gérer mes aliments</b> (en bas de Noter) : créer un aliment ou une préparation (recette maison), corriger une fiche, compléter un nutriment manquant (« À compléter »), archiver un aliment que vous n'utilisez plus (bouton « Archiver » sur sa fiche ; il reste dans « Archivés »).</li></ul>
+   <li><b>Gérer mes aliments</b> (en bas de Noter) : créer un aliment ou une préparation (recette maison), corriger une fiche, compléter un nutriment manquant (« À compléter »), archiver un aliment que vous n'utilisez plus (bouton « Archiver » sur sa fiche ; il reste dans « Archivés »), modifier ou supprimer un repas type (« Repas types » dans la liste du haut).</li></ul>
    <h3>Mon suivi</h3><ul style="padding-left:18px">
    <li><b>Jour</b> : vos repas, notes, pesées, lever et coucher dans l'ordre de l'heure, avec le total. Le crayon corrige, la corbeille supprime. Touchez la date pour ouvrir le calendrier.</li>
    <li><b>Semaine</b> : les calories de chaque jour et les moyennes ; touchez un jour pour l'ouvrir.</li>
@@ -1369,12 +1363,11 @@ function aide(){
    <p style="margin-bottom:0">Une question, une idée ? Écrivez-nous : voir l'onglet <a href="#" data-ht="apropos">À propos</a>.</p>`,`
    <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить.</p>
    <h3>Записать</h3><ul style="padding-left:18px">
-   <li><b>Мой приём пищи</b>: нажмите «Мои продукты» (домашние блюда там в начале списка), категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. «Типовые приёмы пищи» сразу добавляют продукты привычного меню, которое потом можно дополнить. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
+   <li><b>Мой приём пищи</b>: нажмите «Мои продукты» (домашние блюда там в начале списка), категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. «Типовые приёмы пищи» сразу добавляют продукты привычного меню, «Прежние приёмы пищи» — продукты приёма пищи другого дня (вы едите то же, что три дня назад); потом их можно дополнить. Типовое меню или выбранный приём пищи не изменятся. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
    <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет значения продукта.</li>
-   <li><b>Типовые приёмы пищи</b>: то, что вы часто едите. Нажмите на типовое меню, чтобы записать его на сегодня; карандаш изменяет его (название, продукты, количество); «+ Новое типовое меню» создаёт новое. Текущий приём пищи тоже можно сохранить кнопкой «☆ Сохранить как типовое меню».</li>
-   <li><b>Дублировать приём пищи</b>: выберите уже записанный приём пищи; его продукты составят новый, который можно изменить перед сохранением. Удобно для остатков.</li>
+   <li><b>Типовые приёмы пищи</b>: то, что вы часто едите, — основа для записи. Составьте приём пищи один раз в «Мой приём пищи», затем «☆ Сохранить как типовое меню». Потом «Мой приём пищи» › «Типовые приёмы пищи» добавляет его продукты к приёму пищи, который вы дополняете; само типовое меню не меняется.</li>
    <li><b>Заметка</b> (если в Профиле отмечены личные заметки): несколько слов с датой, без подсчётов («2 часа на велосипеде», «небольшая температура»). <b>Мой вес</b>: сразу после сна, если вы нормально выспались, натощак. <b>Подъём</b> и <b>Отбой</b>: если в Профиле отмечен сон.</li>
-   <li><b>Управление продуктами</b> (внизу экрана «Записать»): создать продукт или домашнее блюдо (рецепт), исправить карточку, дополнить недостающий нутриент («Дополнить»), убрать в архив продукт, который вы больше не покупаете (кнопка «В архив» в его карточке; он остаётся в списке «В архиве»).</li></ul>
+   <li><b>Управление продуктами</b> (внизу экрана «Записать»): создать продукт или домашнее блюдо (рецепт), исправить карточку, дополнить недостающий нутриент («Дополнить»), убрать в архив продукт, который вы больше не покупаете (кнопка «В архив» в его карточке; он остаётся в списке «В архиве»), изменить или удалить типовое меню («Типовые приёмы пищи» в списке вверху).</li></ul>
    <h3>Мой дневник</h3><ul style="padding-left:18px">
    <li><b>День</b>: приёмы пищи, заметки, взвешивания, подъём и отбой по времени, с итогом. Карандаш исправляет, корзина удаляет. Нажмите на дату, чтобы открыть календарь.</li>
    <li><b>Неделя</b>: калории по дням и средние значения; нажмите на день, чтобы открыть его.</li>
@@ -1404,7 +1397,7 @@ function aide(){
 function render(){
   TODAY=todayIso();
   if(applyCalc())save();
-  ({home,menu,noter,aliments,fiche:openFiche,repas,types,typeEdit,analyse,sauvegarde,profil,aide,applis,cafe}[view]||home)();
+  ({home,menu,noter,aliments,fiche:openFiche,repas,typeEdit,analyse,sauvegarde,profil,aide,applis,cafe}[view]||home)();
 }
 render();
 if(FRESH)go('profil');
