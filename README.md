@@ -1,4 +1,4 @@
-# NutriNote
+# Mon Carnet d'Alimentation
 
 Un carnet de suivi alimentaire **simple, sans compte ni publicité** : on note ce qu'on mange, le carnet calcule les calories et les protéines, puis on peut exporter son carnet pour le faire analyser par une IA de son choix.
 
