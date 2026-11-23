@@ -46,6 +46,10 @@ body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f);font-si
 .top h1{font-size:1.2rem;margin:0;flex:1;text-align:right}
 .back{border:1px solid var(--line);background:var(--surface);color:var(--accent);font:inherit;font-weight:700;font-size:.9rem;line-height:1;cursor:pointer;padding:7px 12px 7px 8px;border-radius:999px;display:flex;align-items:center;gap:4px;flex:none}
 .back b{font-size:1.35rem;line-height:.8;margin-top:-2px}
+.jumpb{padding:6px 11px 6px 8px;gap:5px}
+.jumpb svg{width:17px;height:17px}
+.jumpb.compact{padding:6px 9px}
+.jumpb.compact .jl{display:none}
 .stick{position:sticky;top:0;background:var(--bg);z-index:5;padding-bottom:8px}
 .stick .top{position:static}
 button{font:inherit;cursor:pointer;color:inherit}
@@ -244,11 +248,7 @@ h1,h2,h3,.btn,.round,.hello .title,.dock button,.alertline{font-family:var(--fd)
 .home .dock{background:transparent;border-top:0}
 .dock .in.six button{padding:4px 1px;font-size:.72rem;min-width:0;flex:1}
 .dock .in.six svg{width:28px;height:28px}
-.dock button.amb svg{color:var(--amber)}
-.fab{position:fixed;right:max(16px,calc(50% - 224px));bottom:calc(20px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:#fff;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.25);z-index:5}
-.fab svg{width:26px;height:26px}
-.fabpad{padding-bottom:84px}
-/* entrées fixes de l'appli (idée 51) : fond propre ; menus de Noter */
+.dock button.amb svg{color:var(--amber)}/* entrées fixes de l'appli (idée 51) : fond propre ; menus de Noter */
 .row.fx{background:var(--accent-soft)}
 .row.fx .name{color:var(--accent)}
 .menu .row{padding:14px 12px;cursor:pointer}
@@ -411,8 +411,15 @@ const KCAL=T('kcal','ккал'),KG=T('kg','кг'),SEP=T(' : ',': ');
 let view='home',back=[],afterBack=null;const state={};
 function clearToasts(){document.querySelectorAll('.toast').forEach(e=>e.remove())}
 function go(v,opts){clearToasts();back.push(view);view=v;Object.assign(state,opts||{});history.pushState({v},'');render();window.scrollTo(0,0)}
-/* raccourci entre Noter et Mon suivi (23/11) : remplace la page en cours, la flèche de retour ramène toujours à l'accueil */
-function jump(v){clearToasts();back=['home'];view=v;history.replaceState({v},'');render();window.scrollTo(0,0)}
+/* raccourci entre Noter et Mon suivi (23/11) : remplace la page en cours, la flèche de retour ramène toujours à l'accueil.
+   Depuis Mon repas, le repas en cours est gardé comme avec la flèche de retour (Mon repas proposera de le reprendre) ; Mon suivi s'ouvre sur sa date. */
+function jump(v){
+  clearToasts();
+  let d=null;
+  if(view==='noter'&&draft){d=draft.date;if(draft.items.length){pendingDraft=draft;saveDraft()}else clearDraft();draft=null}
+  if(v==='repas'){viewDate=d||todayIso();mode='jour'}
+  back=['home'];view=v;history.replaceState({v},'');render();window.scrollTo(0,0);
+}
 function navBack(fn){afterBack=fn||null;if(back.length)history.back();else doBack()}
 function doBack(){
   clearToasts();
@@ -429,8 +436,16 @@ addEventListener('popstate',()=>{
 history.replaceState({v:'home'},'');
 const VIEWNAME={home:T('Accueil','Главная'),menu:T('Noter','Записать'),noter:T('Mon repas','Мой приём пищи'),typeEdit:T('Repas type','Типовое меню'),aliments:T('Aliments','Продукты'),repas:T('Mon suivi','Мой дневник'),fiche:T('Fiche','Карточка'),types:T('Repas types','Назад'),profil:T('Profil','Профиль')};
 function toast(t){clearToasts();const e=document.createElement('div');e.className='toast';e.textContent=t;document.body.appendChild(e);setTimeout(()=>e.remove(),2600)}
-const top=title=>`<div class="top"><button class="back" data-back aria-label="${T('Retour','Назад')}"><b>‹</b>${VIEWNAME[back[back.length-1]]||VIEWNAME.home}</button><h1>${title}</h1></div>`;
-function bind(){app.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>navBack())}
+/* raccourci dans la barre du haut (23/11, demande du responsable) : « Mon suivi » sur les pages de Noter, « Noter » sur Mon suivi ;
+   pas sur les fiches ni sur la modification d'un repas type, où l'on perdrait ce qu'on tape */
+const JUMPS={menu:'repas',noter:'repas',aliments:'repas',repas:'menu'};
+const jumpBtn=()=>{const to=JUMPS[view];if(!to)return '';const lab=to==='repas'?T('Mon suivi','Мой дневник'):T('Noter','Записать');return `<button class="back jumpb" data-jump="${to}" aria-label="${lab}">${to==='repas'?ic.chart:ic.pen}<span class="jl">${lab}</span></button>`};
+/* quand la barre manque de place (russe, petit écran), le bouton ne garde que son icône, la même que sur les grands boutons de l'accueil */
+function fitTop(){const t=app.querySelector('.top'),j=t&&t.querySelector('.jumpb'),h=t&&t.querySelector('h1');if(!j||!h)return;
+  j.classList.remove('compact');const one=parseFloat(getComputedStyle(h).fontSize)*1.7;
+  if(t.scrollWidth>t.clientWidth+1||h.offsetHeight>one)j.classList.add('compact')}
+const top=title=>`<div class="top"><button class="back" data-back aria-label="${T('Retour','Назад')}"><b>‹</b>${VIEWNAME[back[back.length-1]]||VIEWNAME.home}</button>${jumpBtn()}<h1>${title}</h1></div>`;
+function bind(){app.querySelectorAll('[data-back]').forEach(b=>b.onclick=()=>navBack());app.querySelectorAll('[data-jump]').forEach(b=>b.onclick=()=>jump(b.dataset.jump));fitTop()}
 function overlay(cls,html){const bg=document.createElement('div');bg.className='sheet-bg'+(cls?' '+cls:'');bg.innerHTML=html;document.body.appendChild(bg);bg.onclick=e=>{if(e.target===bg)bg.remove()};return bg}
 function ask(title,text,buttons){
   const bg=overlay('center',`<div class="dialog" role="dialog"><h3>${title}</h3>${text?`<p>${text}</p>`:''}<div class="btns">${buttons.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}">${b.label}</button>`).join('')}</div></div>`);
@@ -644,15 +659,12 @@ function menu(){
   app.innerHTML=top(T('Noter','Записать'))+`
    <div class="list menu">${row('mRepas',T('Mon repas','Мой приём пищи'),null,1)}</div>
    <div class="list menu" style="margin-top:12px">${p.notes?row('mNote',T('Une note','Заметка')):''}${row('mPoids',T('Mon poids','Мой вес'))}${p.sommeil?row('mLever',T('Lever','Подъём'))+row('mCoucher',T('Coucher','Отбой')):''}</div>
-   <button class="tmplink" id="mAlim">${T('Gérer mes aliments','Управление продуктами')}</button>
-   <button class="tmplink" id="mSuivi">${T('Voir mon suivi','Открыть мой дневник')}</button>`;
+   <button class="tmplink" id="mAlim">${T('Gérer mes aliments','Управление продуктами')}</button>`;
   bind();
   $('#mRepas').onclick=()=>startNoter();
   const ev=(id,k)=>{const b=$(id);if(b)b.onclick=()=>evtSheet(k,todayIso(),hm(),null,null)};
   ev('#mNote','note');ev('#mLever','lever');ev('#mCoucher','coucher');
-  $('#mPoids').onclick=()=>addWeight(null);
-  $('#mSuivi').onclick=()=>{viewDate=todayIso();mode='jour';jump('repas')};
-  $('#mAlim').onclick=()=>{alimSel={ctx:'aliments',v:'toutes',search:false,q:''};go('aliments')};
+  $('#mPoids').onclick=()=>addWeight(null);  $('#mAlim').onclick=()=>{alimSel={ctx:'aliments',v:'toutes',search:false,q:''};go('aliments')};
 }
 function addToDraft(foodId,g){const ex=draft.items.find(l=>l.foodId===foodId);if(ex){ex.g+=g;draft.items.splice(draft.items.indexOf(ex),1);draft.items.push(ex)}else draft.items.push({foodId,g});draft.flash=foodId;saveDraft()}
 function noter(){
@@ -963,10 +975,8 @@ function repas(){
   app.innerHTML=top(T('Mon suivi','Мой дневник'))+`
   <div class="seg three"><button data-mo="jour" aria-pressed="${mode==='jour'}">${T('Jour','День')}</button><button data-mo="semaine" aria-pressed="${mode==='semaine'}">${T('Semaine','Неделя')}</button><button data-mo="poids" aria-pressed="${mode==='poids'}">${T('Poids','Вес')}</button></div>
   ${mode==='poids'?'':`<div class="daynav"><button id="prev" aria-label="${T('Précédent','Назад')}">‹</button><label class="pickdate">${mode==='jour'?longDate(viewDate):T('Semaine du '+longDate(weekStart(viewDate)).toLowerCase(),'Неделя с '+dayMonth(weekStart(viewDate)))} ${ic.cal}<input type="date" id="pickD" value="${viewDate}" aria-label="${T('Choisir une date','Выбрать дату')}"></label><button id="next" aria-label="${T('Suivant','Вперёд')}">›</button></div>`}
-  <div id="body" class="fabpad"></div>
-  <button class="fab" id="toNoter" aria-label="${T('Noter','Записать')}">${ic.pen}</button>`;
+  <div id="body"></div>`;
   bind();
-  $('#toNoter').onclick=()=>jump('menu');
   app.querySelectorAll('[data-mo]').forEach(b=>b.onclick=()=>{mode=b.dataset.mo;repas()});
   if(mode==='poids'){weightBody();return}
   $('#prev').onclick=()=>{viewDate=addDays(viewDate,mode==='jour'?-1:-7);repas()};
@@ -1017,7 +1027,7 @@ function dayBody(){
     <button class="ico" data-ed="${m.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button><button class="ico del" data-dl="${m.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>
     ${m.items.map(l=>{const f=food(l.foodId);return `<div class="row"><div class="main" style="cursor:default">${esc(f?f.nom:'?')}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} ${KCAL}</div></div>`}).join('')}</div>`}).join('')
    :'<p class="muted">'+T('Rien de noté ce jour-là.','В этот день записей нет.')+'</p>')+
-  `<p class="muted" style="text-align:center">${T('Pour ajouter : le crayon rond (la date se change dans Mon repas).','Чтобы добавить: круглый карандаш (дату можно изменить в «Мой приём пищи»).')}</p>`;
+  `<p class="muted" style="text-align:center">${T('Pour ajouter : Noter, en haut (la date se change dans Mon repas).','Чтобы добавить: «Записать» вверху (дату можно изменить в «Мой приём пищи»).')}</p>`;
   app.querySelectorAll('[data-ew]').forEach(b=>b.onclick=()=>editWeight(S.weights.find(z=>z.id===b.dataset.ew),repas));
   app.querySelectorAll('[data-dw]').forEach(b=>b.onclick=()=>delWeight(S.weights.find(z=>z.id===b.dataset.dw),repas));
   app.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{const m=S.meals.find(x=>x.id===b.dataset.ed);enterNoter(()=>({editId:m.id,date:m.date,time:m.time||'',items:m.items.map(l=>({...l}))}))});
@@ -1383,7 +1393,7 @@ function aide(){
   const CONTACT=`<a class="contact" href="mailto:contact.eboops@gmail.com?subject=${encodeURIComponent(APPN)}"><span>contact.eboops@gmail.com</span><svg viewBox="0 0 100 100" aria-hidden="true"><path fill="#6B4F3A" d="M22,93 C35,90.6 55,92.4 82,91.2 Q84,91.4 82,92.4 C56,94.2 36,93.6 22,96.6 Q20.5,94.8 22,93 Z"/><path d="M74,92 C78,90.6 81.5,88.5 84,85.5" fill="none" stroke="#6B4F3A" stroke-width="1.6" stroke-linecap="round"/><path fill="#7C9A6E" d="M84,85.5 C83.5,80.5 87.5,78 92,78 C91.3,82.8 88.5,86.2 84,85.5 Z"/><path fill="#93B083" d="M79.5,90 C82,89.2 84.5,89.7 86,91.3 C83.5,92.4 81.2,91.8 79.5,90 Z"/><path fill="#4A6283" d="M50,12 C41,12 35,13 31,15 C28,12 23,9 18,8 C19,13 20,19 22,24 C19,29 18,34 18,40 C18,46 20,51 23,55 C18,61 16,68 16,74 C16,85 31,91 50,91 C69,91 84,85 84,74 C84,68 82,61 77,55 C80,51 82,46 82,40 C82,34 81,29 78,24 C80,19 81,13 82,8 C77,9 72,12 69,15 C65,13 59,12 50,12 Z"/><path fill="#34486A" d="M23,55 C18,61 16,68 16,74 C16,82 22,87 30,89 C24,81 22,71 25,62 C26,59 27,57 29,56 Z M77,55 C82,61 84,68 84,74 C84,82 78,87 70,89 C76,81 78,71 75,62 C74,59 73,57 71,56 Z"/><path fill="#8CA3C0" d="M34,71 a16,15.5 0 1,0 32,0 a16,15.5 0 1,0 -32,0 Z"/><path fill="#34486A" d="M24,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M52,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z"/><path fill="#FBF7EE" d="M27.5,38 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 Z M55.5,38 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 Z"/><path fill="#1B2430" d="M32.5,39 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z M58.5,39 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z"/><path fill="#FFFFFF" d="M37.2,37.4 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0 Z M63.2,37.4 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0 Z"/><path fill="#D4A24C" d="M46,45 L54,45 L50,53 Z M38.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M42.2,92.4 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M45.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M49.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M53.2,92.4 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M56.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/></svg></a>`;
   /* aide réécrite au lot 2 (étape 5) : l'ordre suit l'appli, Noter pour créer, Mon suivi pour relire et corriger */
   const HELP=`<div class="card help">${T(`
-   <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger. Pour passer de l'un à l'autre : « Voir mon suivi » en bas de Noter, et le crayon rond en bas de Mon suivi.</p>
+   <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger. Pour passer de l'un à l'autre sans revenir à l'accueil : le petit bouton en haut, à côté du retour (« Mon suivi » dans Noter et Mon repas, « Noter » dans Mon suivi).</p>
    <h3>Noter</h3><ul style="padding-left:18px">
    <li><b>Mon repas</b> : touchez « Mes aliments » (vos préparations y sont en tête), une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. « Repas types » ajoute d'un coup les aliments d'un repas habituel, « Utiliser un repas précédent » ceux d'un repas d'un autre jour (vous mangez la même chose qu'il y a trois jours) : à compléter ensuite. Le repas type ou le repas choisi ne change pas. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
    <li>Une valeur fausse sur l'emballage ? Dans le pavé, le petit crayon corrige les valeurs de l'aliment.</li>
@@ -1400,7 +1410,7 @@ function aide(){
    <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li>
    <li><b>Autres applis</b> : nos autres applications sur le Play Store. <b>Café</b> : pour nous soutenir, bientôt.</li></ul>
    <p style="margin-bottom:0">Une question, une idée ? Écrivez-nous : voir l'onglet <a href="#" data-ht="apropos">À propos</a>.</p>`,`
-   <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить. Чтобы перейти от одного к другому: «Открыть мой дневник» внизу экрана «Записать» и круглый карандаш внизу «Мой дневник».</p>
+   <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить. Чтобы перейти от одного к другому, не возвращаясь на главный экран: маленькая кнопка вверху, рядом с кнопкой «Назад» («Мой дневник» в «Записать» и «Мой приём пищи», «Записать» в «Мой дневник»).</p>
    <h3>Записать</h3><ul style="padding-left:18px">
    <li><b>Мой приём пищи</b>: нажмите «Мои продукты» (домашние блюда там в начале списка), категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. «Типовые приёмы пищи» сразу добавляют продукты привычного меню, «Использовать прежний приём пищи» — продукты приёма пищи другого дня (вы едите то же, что три дня назад); потом их можно дополнить. Типовое меню или выбранный приём пищи не изменятся. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
    <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет значения продукта.</li>
