@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2F6B4F">
-<meta name="description" content="Carnet alimentaire simple, sans compte : calories et protéines, export pour une analyse par une IA.">
-<title>Carnet alimentaire</title>
+<meta name="description" content="Mon Carnet d'Alimentation : suivi simple des repas, sans compte ; calories et protéines, export pour une analyse par une IA.">
+<title>Mon Alimentation</title>
 <style>
 /* polices douces (15/11/2026, demande du responsable) : Comfortaa pour les titres, les ronds et les boutons, Nunito pour le texte.
    Licence SIL Open Font License 1.1 (github.com/google/fonts) :
@@ -291,8 +291,12 @@ const fullDate=s=>{const t=parse(s).toLocaleDateString(LOC,{weekday:'long',day:'
 const dayMonth=s=>parse(s).toLocaleDateString(LOC,{day:'numeric',month:'long'});
 const hm=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
 const fmtT=t=>t?(+t.split(':')[0])+T(' h ',':')+t.split(':')[1]:T('Sans heure','Без времени');
-/* nom de l'application (23/11/2026 : « Carnet alimentaire », ex-NutriNote ; russe validé par Tatiana) */
-const APPN=T('Carnet alimentaire','Дневник питания');
+/* nom de l'application (23/11/2026, décidé par le responsable) : « Mon Alimentation » sous l'icône, « Mon Carnet d'Alimentation » dans le Play Store ;
+   ex-NutriNote, puis « Carnet alimentaire » (rejeté : on comprenait un carnet qui se mange). Russe provisoire, à revoir avec Tatiana
+   (éviter « Мой дневник », déjà pris par Mon suivi) */
+const APPN=T('Mon Alimentation','Дневник питания');
+/* nom long (Play Store), en titre de l'accueil et de l'onglet À propos (demande du responsable, 23/11) */
+const APPL=T('Mon Carnet d\'Alimentation','Дневник питания');
 document.title=APPN;
 const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
 const svg=p=>`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${p}"/></svg>`;
@@ -589,7 +593,7 @@ function home(){
   const nd=lw?Math.round((parse(todayIso())-parse(lw.date))/864e5):0,ruD=n=>n%10===1&&n%100!==11?'день':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'дня':'дней';
   /* en haut : le nom de l'appli et le nom (simple personnalisation) ; « Remplir mon profil » tant que l'objectif ne peut pas être calculé */
   const nom=(S.profile.nom||'').trim(),noProf=!calcKcal();
-  app.innerHTML=`<div class="hello"><div class="title">${APPN}</div>
+  app.innerHTML=`<div class="hello"><div class="title">${APPL}</div>
     ${noProf?`<button class="alertline" id="bProf">${T('Remplir mon profil','Заполнить мой профиль')}</button>`:nom?`<div class="who">${esc(nom)}</div>`:''}</div>
   <div class="rounds">
     <button class="round r1" id="bNoter">${ic.pen}${T('Noter','Записать')}</button>
@@ -1172,7 +1176,7 @@ function analyse(){
 const guessDevice=()=>{const u=navigator.userAgent;return /Android/i.test(u)?'Android':/iPhone|iPad/i.test(u)?'iPhone/iPad':/Windows/i.test(u)?'Windows':/Mac/i.test(u)?'Mac':/Linux/i.test(u)?'Linux':T('Appareil inconnu','Неизвестное устройство')};
 const deviceName=()=>store.get(KEY+'.device')||guessDevice();
 const stamp=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'})+T(' à ',' в ')+fmtT(String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0'))};
-function backupObj(){return {app:'carnet-alimentaire',version:4,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models,profile:S.profile,weights:S.weights,notes:S.notes}}
+function backupObj(){return {app:'mon-alimentation',version:4,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models,profile:S.profile,weights:S.weights,notes:S.notes}}
 let restored=null;
 function sauvegarde(){
   app.className='';
@@ -1195,7 +1199,7 @@ function sauvegarde(){
   bind();restored=null;
   $('#dev').oninput=e=>store.set(KEY+'.device',e.target.value.trim());
   $('#fileB').onclick=()=>{
-    const o=backupObj(),name=`carnet-alimentaire-${todayIso()}-${o.device.replace(/[^\w\-]+/g,'_')}.json`;
+    const o=backupObj(),name=`mon-alimentation-${todayIso()}-${o.device.replace(/[^\w\-]+/g,'_')}.json`;
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:'application/json'}));a.download=name;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
     $('#bout').innerHTML=`<div class="okbox">${T('Fichier '+esc(name)+' enregistré.','Файл '+esc(name)+' сохранён.')}</div>`;
@@ -1378,7 +1382,7 @@ function applis(){
 /* « Offrir un café » : achat intégré de la version Android ; ici, une page d'attente */
 function cafe(){
   app.className='';
-  app.innerHTML=top(T('Offrir un café','Угостить кофе'))+`<div class="card"><p style="margin-top:0">${T(APPN+' est gratuit, sans compte et sans publicité. Si l\'application vous aide, vous pourrez bientôt soutenir son développement en offrant un café, depuis la version Android.',APPN+' бесплатный, без регистрации и без рекламы. Если приложение вам помогает, скоро вы сможете поддержать его развитие, угостив нас кофе, в версии для Android.')}</p><p class="muted" style="margin-bottom:0">${T('Bientôt','Скоро')}</p></div>`;
+  app.innerHTML=top(T('Offrir un café','Угостить кофе'))+`<div class="card"><p style="margin-top:0">${T('Cette application est gratuite, sans compte et sans publicité. Si elle vous aide, vous pourrez bientôt soutenir son développement en offrant un café, depuis la version Android.','Это приложение бесплатное, без регистрации и без рекламы. Если оно вам помогает, скоро вы сможете поддержать его развитие, угостив нас кофе, в версии для Android.')}</p><p class="muted" style="margin-bottom:0">${T('Bientôt','Скоро')}</p></div>`;
   bind();
 }
 
@@ -1430,7 +1434,7 @@ function aide(){
   /* onglet À propos (15/11/2026) : la page « À propos » de RAZ 5.3 (version, noter l'appli, politique de confidentialité, nous contacter), texte de contact sans le mot de passe */
   /* refait le 15/11 sur la capture de RAZ 5.3 : sans cadre, sur le fond en dégradé de l'accueil ; icône de l'appli provisoire (feuille), en attendant l'icône définitive */
   const ABOUT=`<div class="about">
-   <div class="ttl"><h2>${APPN}</h2><p>${T('Version du '+vd,'Версия от '+vd)}</p></div>
+   <div class="ttl"><h2>${APPL}</h2><p>${T('Version du '+vd,'Версия от '+vd)}</p></div>
    <div class="arow off"><svg viewBox="0 0 56 56" aria-hidden="true"><rect width="56" height="56" rx="12" fill="var(--accent)"/><path d="M15 41 C15 25 25 15 42 14 C42 31 33 41 17 41 Z" fill="#fff"/><path d="M17 40 C23 32 29 26 36 20" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg><div><b>${T('Notez cette application','Оцените приложение')}</b><small>${T('Après la publication sur le Play Store','После публикации в Play Маркете')}</small></div></div>
    <div class="arow off"><svg viewBox="0 0 56 56" aria-hidden="true"><path d="M28 4 L48 11 V27 C48 40 39 49 28 53 C17 49 8 40 8 27 V11 Z" fill="#5BC0EB"/><circle cx="26" cy="27" r="9" fill="none" stroke="#fff" stroke-width="5"/><path d="M32.5 33.5 L40 41" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg><div><b>${T('Politique de confidentialité','Политика конфиденциальности')}</b><small>${T('Bientôt','Скоро')}</small></div></div>
    <div class="grow"></div>
