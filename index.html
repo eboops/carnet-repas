@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#2F6B4F">
-<meta name="description" content="NutriNote, carnet alimentaire simple, sans compte : calories et protéines, export pour une analyse par une IA.">
-<title>NutriNote</title>
+<meta name="description" content="Carnet alimentaire simple, sans compte : calories et protéines, export pour une analyse par une IA.">
+<title>Carnet alimentaire</title>
 <style>
 /* polices douces (15/11/2026, demande du responsable) : Comfortaa pour les titres, les ronds et les boutons, Nunito pour le texte.
    Licence SIL Open Font License 1.1 (github.com/google/fonts) :
@@ -245,6 +245,9 @@ h1,h2,h3,.btn,.round,.hello .title,.dock button,.alertline{font-family:var(--fd)
 .dock .in.six button{padding:4px 1px;font-size:.72rem;min-width:0;flex:1}
 .dock .in.six svg{width:28px;height:28px}
 .dock button.amb svg{color:var(--amber)}
+.fab{position:fixed;right:max(16px,calc(50% - 224px));bottom:calc(20px + env(safe-area-inset-bottom));width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:#fff;display:grid;place-items:center;box-shadow:0 3px 10px rgba(0,0,0,.25);z-index:5}
+.fab svg{width:26px;height:26px}
+.fabpad{padding-bottom:84px}
 /* entrées fixes de l'appli (idée 51) : fond propre ; menus de Noter */
 .row.fx{background:var(--accent-soft)}
 .row.fx .name{color:var(--accent)}
@@ -288,6 +291,9 @@ const fullDate=s=>{const t=parse(s).toLocaleDateString(LOC,{weekday:'long',day:'
 const dayMonth=s=>parse(s).toLocaleDateString(LOC,{day:'numeric',month:'long'});
 const hm=()=>{const d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')};
 const fmtT=t=>t?(+t.split(':')[0])+T(' h ',':')+t.split(':')[1]:T('Sans heure','Без времени');
+/* nom de l'application (23/11/2026 : « Carnet alimentaire », ex-NutriNote ; russe validé par Tatiana) */
+const APPN=T('Carnet alimentaire','Дневник питания');
+document.title=APPN;
 const store={get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}},del:k=>{try{localStorage.removeItem(k)}catch(e){}}};
 const svg=p=>`<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="${p}"/></svg>`;
 const ic={
@@ -405,6 +411,8 @@ const KCAL=T('kcal','ккал'),KG=T('kg','кг'),SEP=T(' : ',': ');
 let view='home',back=[],afterBack=null;const state={};
 function clearToasts(){document.querySelectorAll('.toast').forEach(e=>e.remove())}
 function go(v,opts){clearToasts();back.push(view);view=v;Object.assign(state,opts||{});history.pushState({v},'');render();window.scrollTo(0,0)}
+/* raccourci entre Noter et Mon suivi (23/11) : remplace la page en cours, la flèche de retour ramène toujours à l'accueil */
+function jump(v){clearToasts();back=['home'];view=v;history.replaceState({v},'');render();window.scrollTo(0,0)}
 function navBack(fn){afterBack=fn||null;if(back.length)history.back();else doBack()}
 function doBack(){
   clearToasts();
@@ -441,7 +449,7 @@ function numpad(opts){
   /* nombre de décimales permis : deux en portions (0,33 plaquette, 0,25 d'un plat), une ailleurs */
   const decs=i=>modes?(modes[i].dec||1):(opts.dec||1),rnd=(v,d)=>String(Math.round(v*10**d)/10**d).replace('.',',');
   if(opts.value!=null&&opts.value!==''){const v=modes?modes[0].fromG(opts.value):opts.value;s=rnd(v,decs(0))}
-  const bg=overlay('',`<div class="sheet"><h3>${opts.title}</h3>${opts.sub?`<div class="subrow"><div class="muted">${opts.sub}</div>${opts.onEdit?`<button class="ico" id="npEdit" aria-label="${T('Corriger les valeurs','Исправить значения')}">${ic.pen}</button>`:''}</div>`:''}${opts.date?`<input type="date" id="npDate" value="${opts.date}" max="${todayIso()}" aria-label="${T('Date','Дата')}" style="margin-top:8px">`:''}<div id="np"></div></div>`);
+  const bg=overlay('',`<div class="sheet"><h3>${opts.title}</h3>${opts.sub?`<div class="subrow"><div class="muted">${opts.sub}</div>${opts.onEdit?`<button class="ico" id="npEdit" aria-label="${T('Corriger les valeurs','Исправить значения')}">${ic.pen}</button>`:''}</div>`:''}${opts.date?(opts.time!=null?`<div class="grid2" style="margin-top:8px"><input type="date" id="npDate" value="${opts.date}" max="${todayIso()}" aria-label="${T('Date','Дата')}"><input type="time" id="npTime" value="${opts.time}" aria-label="${T('Heure','Время')}"></div>`:`<input type="date" id="npDate" value="${opts.date}" max="${todayIso()}" aria-label="${T('Date','Дата')}" style="margin-top:8px">`):''}<div id="np"></div></div>`);
   const box=bg.querySelector('#np');
   const num=()=>parseFloat(s.replace(',','.'));
   const kb=e=>{if(!document.body.contains(bg)){document.removeEventListener('keydown',kb);return}
@@ -459,7 +467,7 @@ function numpad(opts){
   };
   const press=k=>{
     if(k==='ok'&&s===''&&opts.allowEmpty){bg.remove();document.removeEventListener('keydown',kb);opts.done(null);return}
-    if(k==='ok'){const n=num();if(s===''||isNaN(n)||(opts.positive!==false&&!(n>0))){toast(T('Tapez une valeur.','Введите значение.'));return}const dt=bg.querySelector('#npDate');bg.remove();document.removeEventListener('keydown',kb);opts.done(modes?modes[m].toG(n):n,dt?(dt.value||todayIso()):null);return}
+    if(k==='ok'){const n=num();if(s===''||isNaN(n)||(opts.positive!==false&&!(n>0))){toast(T('Tapez une valeur.','Введите значение.'));return}const dt=bg.querySelector('#npDate'),tm=bg.querySelector('#npTime');bg.remove();document.removeEventListener('keydown',kb);opts.done(modes?modes[m].toG(n):n,dt?(dt.value||todayIso()):null,tm?tm.value:null);return}
     if(k==='⌫')s=s.slice(0,-1);
     else if(k===','){if(!s.includes(','))s=(s||'0')+','}
     else{if(s.replace(',','').length>=6)return;const dec=s.split(',')[1];if(dec!=null&&dec.length>=decs(m))return;s=(s==='0'?'':s)+k}
@@ -564,9 +572,9 @@ function home(){
   /* rappel de pesée : pas la nuit (seulement à partir de 5 h), avec le vrai nombre de jours */
   const lw=lastWeight(),remindW=lw&&lw.date<=addDays(todayIso(),-7)&&new Date().getHours()>=5;
   const nd=lw?Math.round((parse(todayIso())-parse(lw.date))/864e5):0,ruD=n=>n%10===1&&n%100!==11?'день':n%10>=2&&n%10<=4&&(n%100<12||n%100>14)?'дня':'дней';
-  /* en haut : NutriNote et le nom (simple personnalisation) ; « Remplir mon profil » tant que l'objectif ne peut pas être calculé */
+  /* en haut : le nom de l'appli et le nom (simple personnalisation) ; « Remplir mon profil » tant que l'objectif ne peut pas être calculé */
   const nom=(S.profile.nom||'').trim(),noProf=!calcKcal();
-  app.innerHTML=`<div class="hello"><div class="title">NutriNote</div>
+  app.innerHTML=`<div class="hello"><div class="title">${APPN}</div>
     ${noProf?`<button class="alertline" id="bProf">${T('Remplir mon profil','Заполнить мой профиль')}</button>`:nom?`<div class="who">${esc(nom)}</div>`:''}</div>
   <div class="rounds">
     <button class="round r1" id="bNoter">${ic.pen}${T('Noter','Записать')}</button>
@@ -636,12 +644,14 @@ function menu(){
   app.innerHTML=top(T('Noter','Записать'))+`
    <div class="list menu">${row('mRepas',T('Mon repas','Мой приём пищи'),null,1)}</div>
    <div class="list menu" style="margin-top:12px">${p.notes?row('mNote',T('Une note','Заметка')):''}${row('mPoids',T('Mon poids','Мой вес'))}${p.sommeil?row('mLever',T('Lever','Подъём'))+row('mCoucher',T('Coucher','Отбой')):''}</div>
-   <button class="tmplink" id="mAlim">${T('Gérer mes aliments','Управление продуктами')}</button>`;
+   <button class="tmplink" id="mAlim">${T('Gérer mes aliments','Управление продуктами')}</button>
+   <button class="tmplink" id="mSuivi">${T('Voir mon suivi','Открыть мой дневник')}</button>`;
   bind();
   $('#mRepas').onclick=()=>startNoter();
   const ev=(id,k)=>{const b=$(id);if(b)b.onclick=()=>evtSheet(k,todayIso(),hm(),null,null)};
   ev('#mNote','note');ev('#mLever','lever');ev('#mCoucher','coucher');
   $('#mPoids').onclick=()=>addWeight(null);
+  $('#mSuivi').onclick=()=>{viewDate=todayIso();mode='jour';jump('repas')};
   $('#mAlim').onclick=()=>{alimSel={ctx:'aliments',v:'toutes',search:false,q:''};go('aliments')};
 }
 function addToDraft(foodId,g){const ex=draft.items.find(l=>l.foodId===foodId);if(ex){ex.g+=g;draft.items.splice(draft.items.indexOf(ex),1);draft.items.push(ex)}else draft.items.push({foodId,g});draft.flash=foodId;saveDraft()}
@@ -953,8 +963,10 @@ function repas(){
   app.innerHTML=top(T('Mon suivi','Мой дневник'))+`
   <div class="seg three"><button data-mo="jour" aria-pressed="${mode==='jour'}">${T('Jour','День')}</button><button data-mo="semaine" aria-pressed="${mode==='semaine'}">${T('Semaine','Неделя')}</button><button data-mo="poids" aria-pressed="${mode==='poids'}">${T('Poids','Вес')}</button></div>
   ${mode==='poids'?'':`<div class="daynav"><button id="prev" aria-label="${T('Précédent','Назад')}">‹</button><label class="pickdate">${mode==='jour'?longDate(viewDate):T('Semaine du '+longDate(weekStart(viewDate)).toLowerCase(),'Неделя с '+dayMonth(weekStart(viewDate)))} ${ic.cal}<input type="date" id="pickD" value="${viewDate}" aria-label="${T('Choisir une date','Выбрать дату')}"></label><button id="next" aria-label="${T('Suivant','Вперёд')}">›</button></div>`}
-  <div id="body"></div>`;
+  <div id="body" class="fabpad"></div>
+  <button class="fab" id="toNoter" aria-label="${T('Noter','Записать')}">${ic.pen}</button>`;
   bind();
+  $('#toNoter').onclick=()=>jump('menu');
   app.querySelectorAll('[data-mo]').forEach(b=>b.onclick=()=>{mode=b.dataset.mo;repas()});
   if(mode==='poids'){weightBody();return}
   $('#prev').onclick=()=>{viewDate=addDays(viewDate,mode==='jour'?-1:-7);repas()};
@@ -965,9 +977,10 @@ function repas(){
 }
 /* corriger ou supprimer une pesée (Mon suivi : Jour et Poids) */
 function editWeight(x,after){
-  numpad({title:T('Modifier la pesée','Изменить взвешивание'),sub:T('Changez le poids ou la date.','Измените вес или дату.'),value:x.kg,unit:KG,date:x.date,okLabel:T('Enregistrer','Сохранить'),done:(v,d)=>{
+  numpad({title:T('Modifier la pesée','Изменить взвешивание'),sub:T('Changez le poids, la date ou l\'heure.','Измените вес, дату или время.'),value:x.kg,unit:KG,date:x.date,time:x.time||'',okLabel:T('Enregistrer','Сохранить'),done:(v,d,t)=>{
     if(v<30||v>300){toast(T('Poids non valable : ','Неверный вес: ')+nf1(v)+' '+KG+'.');return}
-    x.kg=v;if(d&&d!==x.date){x.date=d;x.time=''}applyCalc();save();toast(T('Pesée modifiée.','Изменено.'));after&&after()}});
+    /* 23/11 : l'heure se règle dans la fenêtre (avant, changer la date effaçait l'heure) */
+    x.kg=v;if(d)x.date=d;x.time=t||'';applyCalc();save();toast(T('Pesée modifiée.','Изменено.'));after&&after()}});
 }
 function delWeight(x,after){
   ask(T('Supprimer cette pesée ?','Удалить это взвешивание?'),nf1(x.kg)+' '+KG+', '+T(longDate(x.date).toLowerCase(),dayMonth(x.date))+'.',[{label:T('Oui, supprimer','Да, удалить'),cls:'warn',fn:()=>{S.weights=S.weights.filter(z=>z!==x);applyCalc();save();after&&after()}},{label:T('Non','Нет'),cls:'ghost'}]);
@@ -1004,7 +1017,7 @@ function dayBody(){
     <button class="ico" data-ed="${m.id}" aria-label="${T('Modifier','Изменить')}">${ic.pen}</button><button class="ico del" data-dl="${m.id}" aria-label="${T('Supprimer','Удалить')}">${ic.del}</button></div>
     ${m.items.map(l=>{const f=food(l.foodId);return `<div class="row"><div class="main" style="cursor:default">${esc(f?f.nom:'?')}</div><div class="vals">${qty(f,l.g)} · ${nf(val(l).k)} ${KCAL}</div></div>`}).join('')}</div>`}).join('')
    :'<p class="muted">'+T('Rien de noté ce jour-là.','В этот день записей нет.')+'</p>')+
-  `<p class="muted" style="text-align:center">${T('Pour ajouter : Noter (la date se change dans Mon repas).','Чтобы добавить: «Записать» (дату можно изменить в «Мой приём пищи»).')}</p>`;
+  `<p class="muted" style="text-align:center">${T('Pour ajouter : le crayon rond (la date se change dans Mon repas).','Чтобы добавить: круглый карандаш (дату можно изменить в «Мой приём пищи»).')}</p>`;
   app.querySelectorAll('[data-ew]').forEach(b=>b.onclick=()=>editWeight(S.weights.find(z=>z.id===b.dataset.ew),repas));
   app.querySelectorAll('[data-dw]').forEach(b=>b.onclick=()=>delWeight(S.weights.find(z=>z.id===b.dataset.dw),repas));
   app.querySelectorAll('[data-ed]').forEach(b=>b.onclick=()=>{const m=S.meals.find(x=>x.id===b.dataset.ed);enterNoter(()=>({editId:m.id,date:m.date,time:m.time||'',items:m.items.map(l=>({...l}))}))});
@@ -1149,7 +1162,7 @@ function analyse(){
 const guessDevice=()=>{const u=navigator.userAgent;return /Android/i.test(u)?'Android':/iPhone|iPad/i.test(u)?'iPhone/iPad':/Windows/i.test(u)?'Windows':/Mac/i.test(u)?'Mac':/Linux/i.test(u)?'Linux':T('Appareil inconnu','Неизвестное устройство')};
 const deviceName=()=>store.get(KEY+'.device')||guessDevice();
 const stamp=d=>{const x=new Date(d);return isNaN(x)?'':x.toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'})+T(' à ',' в ')+fmtT(String(x.getHours()).padStart(2,'0')+':'+String(x.getMinutes()).padStart(2,'0'))};
-function backupObj(){return {app:'nutrinote',version:4,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models,profile:S.profile,weights:S.weights,notes:S.notes}}
+function backupObj(){return {app:'carnet-alimentaire',version:4,savedAt:new Date().toISOString(),device:deviceName(),foods:S.foods,meals:S.meals,goals:S.goals,cats:S.cats,models:S.models,profile:S.profile,weights:S.weights,notes:S.notes}}
 let restored=null;
 function sauvegarde(){
   app.className='';
@@ -1172,7 +1185,7 @@ function sauvegarde(){
   bind();restored=null;
   $('#dev').oninput=e=>store.set(KEY+'.device',e.target.value.trim());
   $('#fileB').onclick=()=>{
-    const o=backupObj(),name=`nutrinote-${todayIso()}-${o.device.replace(/[^\w\-]+/g,'_')}.json`;
+    const o=backupObj(),name=`carnet-alimentaire-${todayIso()}-${o.device.replace(/[^\w\-]+/g,'_')}.json`;
     const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(o,null,1)],{type:'application/json'}));a.download=name;
     document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),3000);
     $('#bout').innerHTML=`<div class="okbox">${T('Fichier '+esc(name)+' enregistré.','Файл '+esc(name)+' сохранён.')}</div>`;
@@ -1232,11 +1245,11 @@ function applyCalc(){
 }
 function addWeight(after){
   const w=lastWeight();
-  /* la date peut être changée pour noter une pesée faite un autre jour ; l'heure n'est gardée que pour aujourd'hui */
-  numpad({title:T('Mon poids','Мой вес'),sub:T('Au réveil, après avoir dormi normalement, à jeun. Changez la date pour une pesée d\'un autre jour.','Сразу после сна, если вы нормально выспались, натощак. Для другого дня измените дату.'),value:w?w.kg:null,unit:KG,date:todayIso(),okLabel:T('Enregistrer','Сохранить'),done:(v,d)=>{
+  /* la date et l'heure se changent pour une pesée faite à un autre moment (heure modifiable depuis le 23/11) */
+  numpad({title:T('Mon poids','Мой вес'),sub:T('Au réveil, après avoir dormi normalement, à jeun. Changez la date pour une pesée d\'un autre jour.','Сразу после сна, если вы нормально выспались, натощак. Для другого дня измените дату.'),value:w?w.kg:null,unit:KG,date:todayIso(),time:hm(),okLabel:T('Enregistrer','Сохранить'),done:(v,d,t)=>{
     if(v<30||v>300){toast(T('Poids non valable : ','Неверный вес: ')+nf1(v)+' '+KG+'.');return}
     const today=d===todayIso();
-    S.weights.push({id:uid(),date:d,time:today?hm():'',kg:v});applyCalc();save();toast(T('Poids noté : ','Вес записан: ')+nf1(v)+' '+KG+(today?'':', '+T(longDate(d).toLowerCase(),dayMonth(d)))+'.');after&&after()}});
+    S.weights.push({id:uid(),date:d,time:t||'',kg:v});applyCalc();save();toast(T('Poids noté : ','Вес записан: ')+nf1(v)+' '+KG+(today?'':', '+T(longDate(d).toLowerCase(),dayMonth(d)))+'.');after&&after()}});
 }
 function weightChart(){
   const ws=[...S.weights].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));if(ws.length<2)return '';
@@ -1262,7 +1275,7 @@ function profil(){
   const until=wk=>{if(!wk)return '';const d=new Date();d.setDate(d.getDate()+Math.round(wk*7));return d.toLocaleDateString(LOC,{month:'long',year:'numeric'}).replace(/\.$/,'')};
   const KPD=T('kcal par jour','ккал в день'),FILL=T('à remplir','заполнить');
   let calc='';
-  if(!c)calc=`<p class="muted" style="margin-top:0">${T('Indiquez votre sexe, votre année de naissance, votre taille, votre poids et votre activité : NutriNote vous proposera un apport de calories par jour.','Укажите пол, год рождения, рост, вес и активность: NutriNote предложит норму калорий в день.')}</p>`;
+  if(!c)calc=`<p class="muted" style="margin-top:0">${T('Indiquez votre sexe, votre année de naissance, votre taille, votre poids et votre activité : l\'application vous proposera un apport de calories par jour.','Укажите пол, год рождения, рост, вес и активность: приложение предложит норму калорий в день.')}</p>`;
   else{
     const L=c.lose?c.levels[c.niv]:null;
     /* toucher un niveau = le prendre comme objectif */
@@ -1270,9 +1283,9 @@ function profil(){
       return `<button data-lv="${k}" aria-pressed="${c.niv===k}">${l}${k==='normal'?T(' (conseillé)',' (рекомендуется)'):''}<b>${nf(x.kcal)} ${KCAL}</b>≈ ${nf1(x.perWeek)} ${KG}${T(' / sem.',' в нед.')}${x.weeks?'<br>'+until(x.weeks):''}${x.raised?'<br><i>'+T('limité au seuil','ограничено порогом')+'</i>':''}</button>`}).join('')}</div>`+
       (c.hidden?`<p class="muted">${T(`Le niveau ${LVL.strict[1]} n'est pas proposé : il vous ferait descendre sous votre seuil de ${nf(c.floor)} kcal par jour.`,`Уровень «${LVL.strict[1]}» не предлагается: с ним вы опустились бы ниже своего порога в ${nf(c.floor)} ккал в день.`)}</p>`:'');
     calc+=`<div class="note">${T(`Votre corps dépense au repos environ <b>${nf(c.bmr)} kcal</b> par jour (formule de Mifflin-St Jeor) ; avec votre activité, environ <b>${nf(c.tdee)} kcal</b>.`,`В покое ваш организм тратит около <b>${nf(c.bmr)} ккал</b> в день (формула Миффлина — Сан Жеора); с учётом активности — около <b>${nf(c.tdee)} ккал</b>.`)}
-      ${c.lose?T(`Pour perdre environ ${nf1(L.perWeek)} kg par semaine, NutriNote propose <b>${nf(L.kcal)} kcal</b> par jour${L.weeks?', soit votre poids cible vers '+until(L.weeks):''}.${L.raised?' Cet objectif a été limité pour ne pas descendre sous le seuil.':''}`,
-          `Чтобы худеть примерно на ${nf1(L.perWeek)} кг в неделю, NutriNote предлагает <b>${nf(L.kcal)} ккал</b> в день${L.weeks?'; целевой вес — примерно '+until(L.weeks):''}.${L.raised?' Цель ограничена, чтобы не опускаться ниже порога.':''}`)
-        :c.gain?T(`Pour prendre du poids, demandez conseil à votre médecin. NutriNote propose de garder <b>${nf(c.kcal)} kcal</b> par jour.`,`Чтобы набрать вес, посоветуйтесь с врачом. NutriNote предлагает сохранить <b>${nf(c.kcal)} ккал</b> в день.`)
+      ${c.lose?T(`Pour perdre environ ${nf1(L.perWeek)} kg par semaine, l'application propose <b>${nf(L.kcal)} kcal</b> par jour${L.weeks?', soit votre poids cible vers '+until(L.weeks):''}.${L.raised?' Cet objectif a été limité pour ne pas descendre sous le seuil.':''}`,
+          `Чтобы худеть примерно на ${nf1(L.perWeek)} кг в неделю, приложение предлагает <b>${nf(L.kcal)} ккал</b> в день${L.weeks?'; целевой вес — примерно '+until(L.weeks):''}.${L.raised?' Цель ограничена, чтобы не опускаться ниже порога.':''}`)
+        :c.gain?T(`Pour prendre du poids, demandez conseil à votre médecin. L'application propose de garder <b>${nf(c.kcal)} kcal</b> par jour.`,`Чтобы набрать вес, посоветуйтесь с врачом. Приложение предлагает сохранить <b>${nf(c.kcal)} ккал</b> в день.`)
         :T(`Pour garder votre poids : <b>${nf(c.kcal)} kcal</b> par jour.`,`Чтобы сохранить вес: <b>${nf(c.kcal)} ккал</b> в день.`)}
       ${T(`Ne descendez pas en dessous de <b>${nf(c.floor)} kcal</b> par jour sans avis médical.`,`Не опускайтесь ниже <b>${nf(c.floor)} ккал</b> в день без совета врача.`)}</div>`;
     if(p.cible&&p.taille&&p.cible/Math.pow(p.taille/100,2)<18.5)calc+=`<div class="banner">${T('Ce poids cible est très bas pour votre taille. Parlez-en à votre médecin avant de vous le fixer.','Этот целевой вес очень мал для вашего роста. Обсудите его с врачом.')}</div>`;
@@ -1355,7 +1368,7 @@ function applis(){
 /* « Offrir un café » : achat intégré de la version Android ; ici, une page d'attente */
 function cafe(){
   app.className='';
-  app.innerHTML=top(T('Offrir un café','Угостить кофе'))+`<div class="card"><p style="margin-top:0">${T('NutriNote est gratuit, sans compte et sans publicité. Si l\'application vous aide, vous pourrez bientôt soutenir son développement en offrant un café, depuis la version Android.','NutriNote бесплатное, без регистрации и без рекламы. Если приложение вам помогает, скоро вы сможете поддержать его развитие, угостив нас кофе, в версии для Android.')}</p><p class="muted" style="margin-bottom:0">${T('Bientôt','Скоро')}</p></div>`;
+  app.innerHTML=top(T('Offrir un café','Угостить кофе'))+`<div class="card"><p style="margin-top:0">${T(APPN+' est gratuit, sans compte et sans publicité. Si l\'application vous aide, vous pourrez bientôt soutenir son développement en offrant un café, depuis la version Android.',APPN+' бесплатный, без регистрации и без рекламы. Если приложение вам помогает, скоро вы сможете поддержать его развитие, угостив нас кофе, в версии для Android.')}</p><p class="muted" style="margin-bottom:0">${T('Bientôt','Скоро')}</p></div>`;
   bind();
 }
 
@@ -1367,10 +1380,10 @@ function aide(){
   const vd=new Date(VERSION+'T12:00').toLocaleDateString(LOC,{day:'numeric',month:'long',year:'numeric'});
   const nom=esc((S.profile.nom||'').trim());
   /* ligne de contact (A2, modèle RAZ 5.3) : hibou ardoise commun à toutes les applis (Identite_eBoops\Logo\eboops_logo.svg), à droite de l'adresse ; toute la ligne ouvre le courriel */
-  const CONTACT=`<a class="contact" href="mailto:contact.eboops@gmail.com?subject=NutriNote"><span>contact.eboops@gmail.com</span><svg viewBox="0 0 100 100" aria-hidden="true"><path fill="#6B4F3A" d="M22,93 C35,90.6 55,92.4 82,91.2 Q84,91.4 82,92.4 C56,94.2 36,93.6 22,96.6 Q20.5,94.8 22,93 Z"/><path d="M74,92 C78,90.6 81.5,88.5 84,85.5" fill="none" stroke="#6B4F3A" stroke-width="1.6" stroke-linecap="round"/><path fill="#7C9A6E" d="M84,85.5 C83.5,80.5 87.5,78 92,78 C91.3,82.8 88.5,86.2 84,85.5 Z"/><path fill="#93B083" d="M79.5,90 C82,89.2 84.5,89.7 86,91.3 C83.5,92.4 81.2,91.8 79.5,90 Z"/><path fill="#4A6283" d="M50,12 C41,12 35,13 31,15 C28,12 23,9 18,8 C19,13 20,19 22,24 C19,29 18,34 18,40 C18,46 20,51 23,55 C18,61 16,68 16,74 C16,85 31,91 50,91 C69,91 84,85 84,74 C84,68 82,61 77,55 C80,51 82,46 82,40 C82,34 81,29 78,24 C80,19 81,13 82,8 C77,9 72,12 69,15 C65,13 59,12 50,12 Z"/><path fill="#34486A" d="M23,55 C18,61 16,68 16,74 C16,82 22,87 30,89 C24,81 22,71 25,62 C26,59 27,57 29,56 Z M77,55 C82,61 84,68 84,74 C84,82 78,87 70,89 C76,81 78,71 75,62 C74,59 73,57 71,56 Z"/><path fill="#8CA3C0" d="M34,71 a16,15.5 0 1,0 32,0 a16,15.5 0 1,0 -32,0 Z"/><path fill="#34486A" d="M24,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M52,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z"/><path fill="#FBF7EE" d="M27.5,38 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 Z M55.5,38 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 Z"/><path fill="#1B2430" d="M32.5,39 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z M58.5,39 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z"/><path fill="#FFFFFF" d="M37.2,37.4 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0 Z M63.2,37.4 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0 Z"/><path fill="#D4A24C" d="M46,45 L54,45 L50,53 Z M38.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M42.2,92.4 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M45.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M49.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M53.2,92.4 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M56.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/></svg></a>`;
+  const CONTACT=`<a class="contact" href="mailto:contact.eboops@gmail.com?subject=${encodeURIComponent(APPN)}"><span>contact.eboops@gmail.com</span><svg viewBox="0 0 100 100" aria-hidden="true"><path fill="#6B4F3A" d="M22,93 C35,90.6 55,92.4 82,91.2 Q84,91.4 82,92.4 C56,94.2 36,93.6 22,96.6 Q20.5,94.8 22,93 Z"/><path d="M74,92 C78,90.6 81.5,88.5 84,85.5" fill="none" stroke="#6B4F3A" stroke-width="1.6" stroke-linecap="round"/><path fill="#7C9A6E" d="M84,85.5 C83.5,80.5 87.5,78 92,78 C91.3,82.8 88.5,86.2 84,85.5 Z"/><path fill="#93B083" d="M79.5,90 C82,89.2 84.5,89.7 86,91.3 C83.5,92.4 81.2,91.8 79.5,90 Z"/><path fill="#4A6283" d="M50,12 C41,12 35,13 31,15 C28,12 23,9 18,8 C19,13 20,19 22,24 C19,29 18,34 18,40 C18,46 20,51 23,55 C18,61 16,68 16,74 C16,85 31,91 50,91 C69,91 84,85 84,74 C84,68 82,61 77,55 C80,51 82,46 82,40 C82,34 81,29 78,24 C80,19 81,13 82,8 C77,9 72,12 69,15 C65,13 59,12 50,12 Z"/><path fill="#34486A" d="M23,55 C18,61 16,68 16,74 C16,82 22,87 30,89 C24,81 22,71 25,62 C26,59 27,57 29,56 Z M77,55 C82,61 84,68 84,74 C84,82 78,87 70,89 C76,81 78,71 75,62 C74,59 73,57 71,56 Z"/><path fill="#8CA3C0" d="M34,71 a16,15.5 0 1,0 32,0 a16,15.5 0 1,0 -32,0 Z"/><path fill="#34486A" d="M24,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z M52,38 a12,12 0 1,0 24,0 a12,12 0 1,0 -24,0 Z"/><path fill="#FBF7EE" d="M27.5,38 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 Z M55.5,38 a8.5,8.5 0 1,0 17,0 a8.5,8.5 0 1,0 -17,0 Z"/><path fill="#1B2430" d="M32.5,39 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z M58.5,39 a4.5,4.5 0 1,0 9,0 a4.5,4.5 0 1,0 -9,0 Z"/><path fill="#FFFFFF" d="M37.2,37.4 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0 Z M63.2,37.4 a1.4,1.4 0 1,0 2.8,0 a1.4,1.4 0 1,0 -2.8,0 Z"/><path fill="#D4A24C" d="M46,45 L54,45 L50,53 Z M38.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M42.2,92.4 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M45.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M49.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M53.2,92.4 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z M56.7,91.6 a2.3,2.3 0 1,0 4.6,0 a2.3,2.3 0 1,0 -4.6,0 Z"/></svg></a>`;
   /* aide réécrite au lot 2 (étape 5) : l'ordre suit l'appli, Noter pour créer, Mon suivi pour relire et corriger */
   const HELP=`<div class="card help">${T(`
-   <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger.</p>
+   <p style="margin-top:0">Deux grands boutons sur l'accueil : <b>Noter</b> pour tout ce que vous ajoutez, <b>Mon suivi</b> pour relire et corriger. Pour passer de l'un à l'autre : « Voir mon suivi » en bas de Noter, et le crayon rond en bas de Mon suivi.</p>
    <h3>Noter</h3><ul style="padding-left:18px">
    <li><b>Mon repas</b> : touchez « Mes aliments » (vos préparations y sont en tête), une catégorie, puis un aliment ; tapez le poids pesé (ex. 118 g) ou le nombre de portions. Il s'ajoute au repas en cours, en bas. « Repas types » ajoute d'un coup les aliments d'un repas habituel, « Utiliser un repas précédent » ceux d'un repas d'un autre jour (vous mangez la même chose qu'il y a trois jours) : à compléter ensuite. Le repas type ou le repas choisi ne change pas. Puis « Enregistrer le repas ». La loupe cherche un aliment par son nom ; la date et l'heure du repas se changent en haut.</li>
    <li>Une valeur fausse sur l'emballage ? Dans le pavé, le petit crayon corrige les valeurs de l'aliment.</li>
@@ -1387,7 +1400,7 @@ function aide(){
    <li><b>Sauvegarde</b> : enregistrez régulièrement un fichier. Vos données restent sur cet appareil, rien n'est envoyé ailleurs.</li>
    <li><b>Autres applis</b> : nos autres applications sur le Play Store. <b>Café</b> : pour nous soutenir, bientôt.</li></ul>
    <p style="margin-bottom:0">Une question, une idée ? Écrivez-nous : voir l'onglet <a href="#" data-ht="apropos">À propos</a>.</p>`,`
-   <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить.</p>
+   <p style="margin-top:0">На главном экране две большие кнопки: <b>Записать</b> — всё, что вы добавляете, <b>Мой дневник</b> — посмотреть и исправить. Чтобы перейти от одного к другому: «Открыть мой дневник» внизу экрана «Записать» и круглый карандаш внизу «Мой дневник».</p>
    <h3>Записать</h3><ul style="padding-left:18px">
    <li><b>Мой приём пищи</b>: нажмите «Мои продукты» (домашние блюда там в начале списка), категорию, затем продукт; введите вес (напр. 118 г) или число порций. Продукт появится внизу, в текущем приёме пищи. «Типовые приёмы пищи» сразу добавляют продукты привычного меню, «Использовать прежний приём пищи» — продукты приёма пищи другого дня (вы едите то же, что три дня назад); потом их можно дополнить. Типовое меню или выбранный приём пищи не изменятся. Затем «Сохранить». Лупа ищет продукт по названию; дату и время можно изменить вверху.</li>
    <li>Значение на упаковке другое? На цифровой клавиатуре маленький карандаш исправляет значения продукта.</li>
@@ -1407,7 +1420,7 @@ function aide(){
   /* onglet À propos (15/11/2026) : la page « À propos » de RAZ 5.3 (version, noter l'appli, politique de confidentialité, nous contacter), texte de contact sans le mot de passe */
   /* refait le 15/11 sur la capture de RAZ 5.3 : sans cadre, sur le fond en dégradé de l'accueil ; icône de l'appli provisoire (feuille), en attendant l'icône définitive */
   const ABOUT=`<div class="about">
-   <div class="ttl"><h2>NutriNote</h2><p>${T('Version du '+vd,'Версия от '+vd)}</p></div>
+   <div class="ttl"><h2>${APPN}</h2><p>${T('Version du '+vd,'Версия от '+vd)}</p></div>
    <div class="arow off"><svg viewBox="0 0 56 56" aria-hidden="true"><rect width="56" height="56" rx="12" fill="var(--accent)"/><path d="M15 41 C15 25 25 15 42 14 C42 31 33 41 17 41 Z" fill="#fff"/><path d="M17 40 C23 32 29 26 36 20" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round"/></svg><div><b>${T('Notez cette application','Оцените приложение')}</b><small>${T('Après la publication sur le Play Store','После публикации в Play Маркете')}</small></div></div>
    <div class="arow off"><svg viewBox="0 0 56 56" aria-hidden="true"><path d="M28 4 L48 11 V27 C48 40 39 49 28 53 C17 49 8 40 8 27 V11 Z" fill="#5BC0EB"/><circle cx="26" cy="27" r="9" fill="none" stroke="#fff" stroke-width="5"/><path d="M32.5 33.5 L40 41" stroke="#fff" stroke-width="5" stroke-linecap="round"/></svg><div><b>${T('Politique de confidentialité','Политика конфиденциальности')}</b><small>${T('Bientôt','Скоро')}</small></div></div>
    <div class="grow"></div>
