@@ -2,9 +2,10 @@
   "name": "Mon Carnet d'Alimentation",
   "short_name": "Mon Alimentation",
   "lang": "fr",
+  "id": "./",
   "start_url": "./",
   "scope": "./",
-  "display": "browser",
+  "display": "standalone",
   "background_color": "#FFFFFF",
   "theme_color": "#2F6B4F",
   "icons": [
